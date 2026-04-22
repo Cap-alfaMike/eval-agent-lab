@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from jinja2 import BaseLoader, Environment
-
 
 _ENV = Environment(loader=BaseLoader(), autoescape=False)
 
@@ -28,7 +27,8 @@ You are an advanced AI assistant with access to tools. Follow this process:
 {{ tool.description }}
 Parameters:
 {% for param in tool.parameters %}
-- {{ param.name }} ({{ param.type }}{% if not param.required %}, optional{% endif %}): {{ param.description }}
+- {{ param.name }} ({{ param.type }}
+  {%- if not param.required %}, optional{% endif %}): {{ param.description }}
 {% endfor %}
 {% endfor %}
 
@@ -75,11 +75,15 @@ Provide your evaluation as JSON:
 """)
 
 
-def render_system_prompt(tools: List[Dict[str, Any]]) -> str:
+def render_system_prompt(tools: list[dict[str, Any]]) -> str:
     """Render the system prompt with available tools."""
     return SYSTEM_PROMPT.render(tools=tools)
 
 
 def render_judge_prompt(question: str, expected_answer: str, response: str) -> str:
     """Render the LLM-as-judge evaluation prompt."""
-    return JUDGE_PROMPT.render(question=question, expected_answer=expected_answer, response=response)
+    return JUDGE_PROMPT.render(
+        question=question,
+        expected_answer=expected_answer,
+        response=response,
+    )

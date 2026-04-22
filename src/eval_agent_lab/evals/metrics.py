@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import abc
-import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -15,8 +14,8 @@ class MetricResult(BaseModel):
     metric_name: str
     score: float  # 0.0 - 1.0 normalized
     raw_score: Any = None
-    details: Dict[str, Any] = Field(default_factory=dict)
-    error: Optional[str] = None
+    details: dict[str, Any] = Field(default_factory=dict)
+    error: str | None = None
 
 
 class BaseMetric(abc.ABC):
@@ -163,7 +162,10 @@ class HallucinationDetector(BaseMetric):
         context_lower = context.lower()
 
         if not pred_sentences:
-            return MetricResult(metric_name=self.name, score=1.0, details={"supported": 0, "total": 0})
+            return MetricResult(
+                metric_name=self.name, score=1.0,
+                details={"supported": 0, "total": 0},
+            )
 
         supported = 0
         unsupported_claims = []
@@ -199,8 +201,8 @@ class ToolSelectionAccuracy(BaseMetric):
         return "tool_selection_accuracy"
 
     async def compute(self, prediction: str, reference: str, **kwargs: Any) -> MetricResult:
-        expected_tools: List[str] = kwargs.get("expected_tools", [])
-        actual_tools: List[str] = kwargs.get("actual_tools", [])
+        expected_tools: list[str] = kwargs.get("expected_tools", [])
+        actual_tools: list[str] = kwargs.get("actual_tools", [])
 
         if not expected_tools:
             return MetricResult(metric_name=self.name, score=1.0,
@@ -232,7 +234,7 @@ class ReasoningConsistencyMetric(BaseMetric):
         return "reasoning_consistency"
 
     async def compute(self, prediction: str, reference: str, **kwargs: Any) -> MetricResult:
-        steps: List[Dict[str, Any]] = kwargs.get("steps", [])
+        steps: list[dict[str, Any]] = kwargs.get("steps", [])
         if not steps:
             return MetricResult(metric_name=self.name, score=0.5,
                               details={"note": "No steps provided"})
@@ -285,7 +287,7 @@ class StepEfficiencyMetric(BaseMetric):
 # Metric Registry
 # ---------------------------------------------------------------------------
 
-def get_default_metrics() -> List[BaseMetric]:
+def get_default_metrics() -> list[BaseMetric]:
     """Return all default metrics."""
     return [
         ExactMatchMetric(),

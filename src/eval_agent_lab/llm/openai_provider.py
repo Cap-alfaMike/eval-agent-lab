@@ -2,26 +2,26 @@
 
 from __future__ import annotations
 
-import json
-from typing import Any, AsyncIterator, Dict, List, Optional
+from collections.abc import AsyncIterator
+from typing import Any
 
 from eval_agent_lab.config import CacheConfig, LLMConfig
-from eval_agent_lab.exceptions import LLMConnectionError, LLMRateLimitError, LLMResponseError
+from eval_agent_lab.exceptions import LLMConnectionError, LLMRateLimitError
 from eval_agent_lab.llm import BaseLLMProvider, LLMMessage, LLMResponse, StreamChunk
 
 
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI-compatible LLM provider (works with OpenAI, Azure, local servers)."""
 
-    def __init__(self, config: LLMConfig, cache_config: Optional[CacheConfig] = None):
+    def __init__(self, config: LLMConfig, cache_config: CacheConfig | None = None):
         super().__init__(config, cache_config)
-        self._client: Optional[Any] = None
+        self._client: Any | None = None
 
     def _get_client(self) -> Any:
         if self._client is None:
             try:
                 from openai import AsyncOpenAI
-                kwargs: Dict[str, Any] = {
+                kwargs: dict[str, Any] = {
                     "api_key": self.config.get_api_key(),
                     "timeout": self.config.timeout,
                     "max_retries": self.config.max_retries,
@@ -35,14 +35,24 @@ class OpenAIProvider(BaseLLMProvider):
 
     def _build_request_kwargs(
         self,
-        messages: List[LLMMessage],
-        tools: Optional[List[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
+        messages: list[LLMMessage],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """Build the common request kwargs dict shared by _call and _stream."""
-        request_kwargs: Dict[str, Any] = {
+        request_kwargs: dict[str, Any] = {
             "model": self.config.model,
-            "messages": [{"role": m.role, "content": m.content, **({"name": m.name} if m.name else {}),
-                         **({"tool_call_id": m.tool_call_id} if m.tool_call_id else {})} for m in messages],
+            "messages": [
+                {
+                    "role": m.role,
+                    "content": m.content,
+                    **({"name": m.name} if m.name else {}),
+                    **(
+                        {"tool_call_id": m.tool_call_id}
+                        if m.tool_call_id else {}
+                    ),
+                }
+                for m in messages
+            ],
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
         }
@@ -51,8 +61,8 @@ class OpenAIProvider(BaseLLMProvider):
             request_kwargs["tool_choice"] = "auto"
         return request_kwargs
 
-    async def _call(self, messages: List[LLMMessage],
-                    tools: Optional[List[Dict[str, Any]]] = None,
+    async def _call(self, messages: list[LLMMessage],
+                    tools: list[dict[str, Any]] | None = None,
                     **kwargs: Any) -> LLMResponse:
         client = self._get_client()
         request_kwargs = self._build_request_kwargs(messages, tools)
@@ -91,8 +101,8 @@ class OpenAIProvider(BaseLLMProvider):
 
     async def _stream(
         self,
-        messages: List[LLMMessage],
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[LLMMessage],
+        tools: list[dict[str, Any]] | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamChunk]:
         """Yield incremental token chunks from the OpenAI streaming API.
@@ -125,8 +135,8 @@ class OpenAIProvider(BaseLLMProvider):
 
     async def stream(
         self,
-        messages: List[LLMMessage],
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[LLMMessage],
+        tools: list[dict[str, Any]] | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamChunk]:
         """Public streaming interface — delegates to _stream."""

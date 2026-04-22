@@ -49,7 +49,7 @@ class AgentError(EvalAgentLabError):
     """Base error for agent-related failures."""
 
 
-class AgentMaxStepsExceeded(AgentError):
+class AgentMaxStepsError(AgentError):
     """Agent exceeded the maximum number of reasoning steps."""
 
 

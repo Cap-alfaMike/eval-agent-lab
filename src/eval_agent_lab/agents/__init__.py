@@ -7,12 +7,12 @@ import json
 import time
 import uuid
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
-from eval_agent_lab.llm import BaseLLMProvider, LLMMessage, LLMResponse
-from eval_agent_lab.mcp import ToolRegistry, ToolResult
+from eval_agent_lab.llm import BaseLLMProvider, LLMMessage
+from eval_agent_lab.mcp import ToolRegistry
 
 
 class StepType(str, Enum):
@@ -29,33 +29,33 @@ class AgentStep(BaseModel):
     step_number: int
     step_type: StepType
     content: str = ""
-    tool_name: Optional[str] = None
-    tool_input: Optional[Dict[str, Any]] = None
-    tool_result: Optional[Dict[str, Any]] = None
+    tool_name: str | None = None
+    tool_input: dict[str, Any] | None = None
+    tool_result: dict[str, Any] | None = None
     timestamp: float = Field(default_factory=time.time)
     latency_ms: float = 0.0
-    token_usage: Dict[str, int] = Field(default_factory=dict)
+    token_usage: dict[str, int] = Field(default_factory=dict)
 
 
 class AgentTrace(BaseModel):
     """Complete execution trace for an agent run."""
     trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     task: str = ""
-    steps: List[AgentStep] = Field(default_factory=list)
+    steps: list[AgentStep] = Field(default_factory=list)
     final_answer: str = ""
     success: bool = False
     total_steps: int = 0
     total_latency_ms: float = 0.0
     total_tokens: int = 0
-    tools_used: List[str] = Field(default_factory=list)
-    error: Optional[str] = None
+    tools_used: list[str] = Field(default_factory=list)
+    error: str | None = None
 
 
 class ShortTermMemory:
     """Short-term memory for agent context within a single task."""
 
     def __init__(self, max_entries: int = 50):
-        self._entries: List[Dict[str, Any]] = []
+        self._entries: list[dict[str, Any]] = []
         self._max = max_entries
 
     def add(self, key: str, value: Any) -> None:
@@ -63,10 +63,10 @@ class ShortTermMemory:
         if len(self._entries) > self._max:
             self._entries = self._entries[-self._max:]
 
-    def search(self, key: str) -> List[Any]:
+    def search(self, key: str) -> list[Any]:
         return [e["value"] for e in self._entries if e["key"] == key]
 
-    def get_recent(self, n: int = 10) -> List[Dict[str, Any]]:
+    def get_recent(self, n: int = 10) -> list[dict[str, Any]]:
         return self._entries[-n:]
 
     def clear(self) -> None:
@@ -91,7 +91,7 @@ class BaseAgent(abc.ABC):
         self.memory = ShortTermMemory()
 
     @abc.abstractmethod
-    async def run(self, task: str, context: Optional[str] = None) -> AgentTrace:
+    async def run(self, task: str, context: str | None = None) -> AgentTrace:
         """Execute the agent on a given task and return the full trace."""
         ...
 
@@ -107,9 +107,9 @@ class ReActAgent(BaseAgent):
                  max_steps: int = 10, name: str = "ReActAgent"):
         super().__init__(llm, tools, max_steps, name)
 
-    async def run(self, task: str, context: Optional[str] = None) -> AgentTrace:
+    async def run(self, task: str, context: str | None = None) -> AgentTrace:
         trace = AgentTrace(task=task)
-        messages: List[LLMMessage] = []
+        messages: list[LLMMessage] = []
         step_num = 0
 
         # Build system prompt with tool definitions
@@ -195,7 +195,11 @@ class ReActAgent(BaseAgent):
                         trace.tools_used.append(tool_name)
 
                     # OBSERVE: Feed result back
-                    obs_content = json.dumps(tool_result.output) if tool_result.success else f"Error: {tool_result.error}"
+                    obs_content = (
+                        json.dumps(tool_result.output)
+                        if tool_result.success
+                        else f"Error: {tool_result.error}"
+                    )
                     messages.append(LLMMessage(role="assistant", content=response.content))
                     messages.append(LLMMessage(role="user", content=f"Observation: {obs_content}"))
 
@@ -229,7 +233,7 @@ class ReActAgent(BaseAgent):
         return trace
 
     @staticmethod
-    def _parse_action(content: str) -> Optional[Dict[str, Any]]:
+    def _parse_action(content: str) -> dict[str, Any] | None:
         """Extract JSON action from LLM response."""
         # Try to find JSON in the response
         content = content.strip()
@@ -248,7 +252,8 @@ class ReActAgent(BaseAgent):
                     depth -= 1
                 if depth == 0:
                     try:
-                        return json.loads(content[start:i + 1])
+                        parsed: dict[str, Any] = json.loads(content[start:i + 1])
+                        return parsed
                     except json.JSONDecodeError:
                         continue
 

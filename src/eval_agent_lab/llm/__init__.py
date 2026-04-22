@@ -6,39 +6,40 @@ import abc
 import hashlib
 import json
 import time
-from typing import Any, AsyncIterator, Dict, List, Optional
+from collections.abc import AsyncIterator
+from typing import Any
 
 from pydantic import BaseModel, Field
 
-from eval_agent_lab.config import LLMConfig, CacheConfig
+from eval_agent_lab.config import CacheConfig, LLMConfig
 
 
 class LLMMessage(BaseModel):
     """A single message in a conversation."""
     role: str  # system, user, assistant, tool
     content: str
-    name: Optional[str] = None
-    tool_call_id: Optional[str] = None
-    tool_calls: Optional[List[Dict[str, Any]]] = None
+    name: str | None = None
+    tool_call_id: str | None = None
+    tool_calls: list[dict[str, Any]] | None = None
 
 
 class LLMResponse(BaseModel):
     """Structured response from an LLM provider."""
     content: str = ""
-    tool_calls: List[Dict[str, Any]] = Field(default_factory=list)
+    tool_calls: list[dict[str, Any]] = Field(default_factory=list)
     model: str = ""
-    usage: Dict[str, int] = Field(default_factory=dict)
+    usage: dict[str, int] = Field(default_factory=dict)
     latency_ms: float = 0.0
     cached: bool = False
     finish_reason: str = ""
     streamed: bool = False
-    raw: Optional[Dict[str, Any]] = None
+    raw: dict[str, Any] | None = None
 
 
 class StreamChunk(BaseModel):
     """A single chunk from a streaming LLM response."""
     content: str = ""
-    finish_reason: Optional[str] = None
+    finish_reason: str | None = None
     model: str = ""
 
 
@@ -63,10 +64,10 @@ class LLMUsageStats(BaseModel):
 class BaseLLMProvider(abc.ABC):
     """Abstract base class for LLM providers."""
 
-    def __init__(self, config: LLMConfig, cache_config: Optional[CacheConfig] = None):
+    def __init__(self, config: LLMConfig, cache_config: CacheConfig | None = None):
         self.config = config
         self.stats = LLMUsageStats()
-        self._cache: Optional[Any] = None
+        self._cache: Any | None = None
         if cache_config and cache_config.enabled:
             try:
                 import diskcache
@@ -75,19 +76,19 @@ class BaseLLMProvider(abc.ABC):
             except ImportError:
                 pass
 
-    def _cache_key(self, messages: List[LLMMessage], **kwargs: Any) -> str:
+    def _cache_key(self, messages: list[LLMMessage], **kwargs: Any) -> str:
         data = json.dumps([m.model_dump() for m in messages], sort_keys=True)
         data += json.dumps(kwargs, sort_keys=True)
         return hashlib.sha256(data.encode()).hexdigest()
 
     @abc.abstractmethod
-    async def _call(self, messages: List[LLMMessage],
-                    tools: Optional[List[Dict[str, Any]]] = None,
+    async def _call(self, messages: list[LLMMessage],
+                    tools: list[dict[str, Any]] | None = None,
                     **kwargs: Any) -> LLMResponse:
         ...
 
-    async def generate(self, messages: List[LLMMessage],
-                       tools: Optional[List[Dict[str, Any]]] = None,
+    async def generate(self, messages: list[LLMMessage],
+                       tools: list[dict[str, Any]] | None = None,
                        **kwargs: Any) -> LLMResponse:
         """Generate a response with caching and stats tracking.
 
@@ -123,13 +124,13 @@ class BaseLLMProvider(abc.ABC):
 
     async def _collect_stream(
         self,
-        messages: List[LLMMessage],
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[LLMMessage],
+        tools: list[dict[str, Any]] | None = None,
         **kwargs: Any,
     ) -> LLMResponse:
         """Consume stream() and aggregate into a single LLMResponse."""
         start = time.perf_counter()
-        chunks: List[str] = []
+        chunks: list[str] = []
         model = ""
         finish_reason = ""
 
@@ -163,8 +164,8 @@ class BaseLLMProvider(abc.ABC):
 
     async def stream(
         self,
-        messages: List[LLMMessage],
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[LLMMessage],
+        tools: list[dict[str, Any]] | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamChunk]:
         """Stream response chunks. Override in providers that support it.
@@ -178,8 +179,8 @@ class BaseLLMProvider(abc.ABC):
             model=response.model,
         )
 
-    async def batch_generate(self, message_batches: List[List[LLMMessage]],
-                             **kwargs: Any) -> List[LLMResponse]:
+    async def batch_generate(self, message_batches: list[list[LLMMessage]],
+                             **kwargs: Any) -> list[LLMResponse]:
         """Process multiple requests (sequential; override for parallel)."""
         results = []
         for messages in message_batches:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -16,9 +16,9 @@ class DatasetItem(BaseModel):
     id: str = ""
     input: str
     expected_output: str
-    expected_tools: List[str] = Field(default_factory=list)
-    context: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    expected_tools: list[str] = Field(default_factory=list)
+    context: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
     difficulty: str = "medium"  # easy, medium, hard
     category: str = "general"
 
@@ -35,19 +35,19 @@ class Dataset(BaseModel):
     name: str
     description: str = ""
     version: str = "1.0.0"
-    items: List[DatasetItem] = Field(default_factory=list)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    items: list[DatasetItem] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     @property
     def size(self) -> int:
         return len(self.items)
 
-    def filter_by_category(self, category: str) -> "Dataset":
+    def filter_by_category(self, category: str) -> Dataset:
         filtered = [item for item in self.items if item.category == category]
         return Dataset(name=f"{self.name}_{category}", description=self.description,
                       items=filtered, metadata=self.metadata)
 
-    def filter_by_difficulty(self, difficulty: str) -> "Dataset":
+    def filter_by_difficulty(self, difficulty: str) -> Dataset:
         filtered = [item for item in self.items if item.difficulty == difficulty]
         return Dataset(name=f"{self.name}_{difficulty}", description=self.description,
                       items=filtered, metadata=self.metadata)
@@ -64,7 +64,7 @@ class DatasetLoader:
             raise DatasetValidationError(f"Dataset file not found: {path}")
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as exc:
             raise DatasetValidationError(f"Invalid JSON in {path}: {exc}") from exc
@@ -72,12 +72,12 @@ class DatasetLoader:
         return DatasetLoader._parse_data(data, path.stem)
 
     @staticmethod
-    def from_dict(data: Dict[str, Any]) -> Dataset:
+    def from_dict(data: dict[str, Any]) -> Dataset:
         """Load a dataset from a dictionary."""
         return DatasetLoader._parse_data(data, data.get("name", "unnamed"))
 
     @staticmethod
-    def _parse_data(data: Dict[str, Any], default_name: str) -> Dataset:
+    def _parse_data(data: dict[str, Any], default_name: str) -> Dataset:
         """Parse raw data into a Dataset."""
         if "items" not in data:
             raise DatasetValidationError("Dataset must contain 'items' key")
@@ -104,7 +104,7 @@ class DatasetLoader:
         )
 
     @staticmethod
-    def validate(dataset: Dataset) -> List[str]:
+    def validate(dataset: Dataset) -> list[str]:
         """Validate a dataset and return list of warnings."""
         warnings = []
         ids_seen = set()

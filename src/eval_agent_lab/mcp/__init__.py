@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import abc
-import json
 import time
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 from eval_agent_lab.exceptions import (
-    ToolExecutionError,
+    ToolExecutionError as ToolExecutionError,
+)
+from eval_agent_lab.exceptions import (
     ToolNotFoundError,
     ToolValidationError,
 )
-
 
 # ---------------------------------------------------------------------------
 # Tool Schema Definitions (JSON Schema-based, MCP-style)
@@ -37,8 +37,8 @@ class ToolParameter(BaseModel):
     type: ParameterType
     description: str
     required: bool = True
-    default: Optional[Any] = None
-    enum: Optional[List[Any]] = None
+    default: Any | None = None
+    enum: list[Any] | None = None
 
 
 class ToolDefinition(BaseModel):
@@ -50,18 +50,18 @@ class ToolDefinition(BaseModel):
 
     name: str = Field(..., description="Unique identifier for the tool")
     description: str = Field(..., description="Human-readable description")
-    parameters: List[ToolParameter] = Field(default_factory=list)
+    parameters: list[ToolParameter] = Field(default_factory=list)
     returns: str = Field(default="string", description="Return type description")
     category: str = Field(default="general", description="Tool category for grouping")
     version: str = Field(default="1.0.0")
 
-    def to_openai_schema(self) -> Dict[str, Any]:
+    def to_openai_schema(self) -> dict[str, Any]:
         """Convert to OpenAI function-calling schema format."""
-        properties: Dict[str, Any] = {}
-        required: List[str] = []
+        properties: dict[str, Any] = {}
+        required: list[str] = []
 
         for param in self.parameters:
-            prop: Dict[str, Any] = {
+            prop: dict[str, Any] = {
                 "type": param.type.value,
                 "description": param.description,
             }
@@ -95,9 +95,9 @@ class ToolResult(BaseModel):
     tool_name: str
     success: bool
     output: Any = None
-    error: Optional[str] = None
+    error: str | None = None
     execution_time_ms: float = 0.0
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -118,14 +118,14 @@ class BaseTool(abc.ABC):
         """Return the JSON-schema-based tool definition."""
         ...
 
-    def validate_input(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_input(self, params: dict[str, Any]) -> dict[str, Any]:
         """Validate and normalize input parameters.
 
         Override for custom validation logic. Default implementation checks
         required parameters and applies defaults.
         """
         defn = self.definition()
-        validated: Dict[str, Any] = {}
+        validated: dict[str, Any] = {}
 
         for param in defn.parameters:
             if param.name in params:
@@ -138,21 +138,24 @@ class BaseTool(abc.ABC):
                 )
 
             # Enum validation
-            if param.name in validated and param.enum:
-                if validated[param.name] not in param.enum:
-                    raise ToolValidationError(
-                        f"Parameter '{param.name}' must be one of {param.enum}, "
-                        f"got '{validated[param.name]}'"
-                    )
+            if (
+                param.name in validated
+                and param.enum
+                and validated[param.name] not in param.enum
+            ):
+                raise ToolValidationError(
+                    f"Parameter '{param.name}' must be one of "
+                    f"{param.enum}, got '{validated[param.name]}'"
+                )
 
         return validated
 
     @abc.abstractmethod
-    async def execute(self, params: Dict[str, Any]) -> Any:
+    async def execute(self, params: dict[str, Any]) -> Any:
         """Execute the tool with validated parameters."""
         ...
 
-    async def safe_execute(self, params: Dict[str, Any]) -> ToolResult:
+    async def safe_execute(self, params: dict[str, Any]) -> ToolResult:
         """Execute with error handling, timing, and structured result."""
         defn = self.definition()
         start = time.perf_counter()
@@ -198,8 +201,8 @@ class ToolRegistry:
     """
 
     def __init__(self) -> None:
-        self._tools: Dict[str, BaseTool] = {}
-        self._categories: Dict[str, List[str]] = {}
+        self._tools: dict[str, BaseTool] = {}
+        self._categories: dict[str, list[str]] = {}
 
     def register(self, tool: BaseTool) -> None:
         """Register a tool instance."""
@@ -209,7 +212,7 @@ class ToolRegistry:
         self._tools[defn.name] = tool
         self._categories.setdefault(defn.category, []).append(defn.name)
 
-    def register_class(self, tool_cls: Type[BaseTool]) -> None:
+    def register_class(self, tool_cls: type[BaseTool]) -> None:
         """Instantiate and register a tool class."""
         self.register(tool_cls())
 
@@ -232,20 +235,20 @@ class ToolRegistry:
             )
         return self._tools[name]
 
-    def list_tools(self) -> List[ToolDefinition]:
+    def list_tools(self) -> list[ToolDefinition]:
         """Return definitions for all registered tools."""
         return [tool.definition() for tool in self._tools.values()]
 
-    def list_by_category(self, category: str) -> List[ToolDefinition]:
+    def list_by_category(self, category: str) -> list[ToolDefinition]:
         """Return tool definitions filtered by category."""
         names = self._categories.get(category, [])
         return [self._tools[n].definition() for n in names if n in self._tools]
 
-    def get_openai_schemas(self) -> List[Dict[str, Any]]:
+    def get_openai_schemas(self) -> list[dict[str, Any]]:
         """Return all tool definitions in OpenAI function-calling format."""
         return [tool.definition().to_openai_schema() for tool in self._tools.values()]
 
-    async def invoke(self, name: str, params: Dict[str, Any]) -> ToolResult:
+    async def invoke(self, name: str, params: dict[str, Any]) -> ToolResult:
         """Invoke a tool by name with given parameters."""
         tool = self.get(name)
         return await tool.safe_execute(params)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import structlog
 
@@ -25,7 +25,7 @@ def setup_logging(config: ObservabilityConfig) -> None:
     ]
 
     structlog.configure(
-        processors=processors,
+        processors=processors,  # type: ignore[arg-type]
         wrapper_class=structlog.stdlib.BoundLogger,
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
@@ -50,10 +50,10 @@ class CostTracker:
     }
 
     def __init__(self) -> None:
-        self._records: List[Dict[str, Any]] = []
+        self._records: list[dict[str, Any]] = []
 
     def record(self, model: str, prompt_tokens: int, completion_tokens: int,
-               latency_ms: float) -> Dict[str, Any]:
+               latency_ms: float) -> dict[str, Any]:
         pricing = self.PRICING.get(model, {"prompt": 0.001, "completion": 0.002})
         cost = (prompt_tokens / 1000 * pricing["prompt"] +
                 completion_tokens / 1000 * pricing["completion"])
@@ -72,13 +72,13 @@ class CostTracker:
 
     @property
     def total_cost(self) -> float:
-        return sum(r["estimated_cost_usd"] for r in self._records)
+        return float(sum(r["estimated_cost_usd"] for r in self._records))
 
     @property
     def total_tokens(self) -> int:
         return sum(r["total_tokens"] for r in self._records)
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         if not self._records:
             return {"total_requests": 0, "total_tokens": 0, "total_cost_usd": 0.0}
         return {
@@ -87,14 +87,16 @@ class CostTracker:
             "total_prompt_tokens": sum(r["prompt_tokens"] for r in self._records),
             "total_completion_tokens": sum(r["completion_tokens"] for r in self._records),
             "total_cost_usd": round(self.total_cost, 6),
-            "avg_latency_ms": round(sum(r["latency_ms"] for r in self._records) / len(self._records), 2),
+            "avg_latency_ms": round(
+                sum(r["latency_ms"] for r in self._records) / len(self._records), 2
+            ),
         }
 
 
 class TraceLogger:
     """Log agent execution traces for debugging and analysis."""
 
-    def __init__(self, output_dir: Optional[Path] = None):
+    def __init__(self, output_dir: Path | None = None):
         self._logger = get_logger("trace")
         self._output_dir = output_dir
         if output_dir:

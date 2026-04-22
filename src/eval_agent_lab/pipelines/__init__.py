@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
 
 from eval_agent_lab.agents import AgentTrace, ReActAgent
 from eval_agent_lab.config import AppConfig, LLMProviderType
-from eval_agent_lab.datasets import Dataset, DatasetItem, DatasetLoader
-from eval_agent_lab.evals import EvaluationEngine, EvaluationReport, EvaluationResult
+from eval_agent_lab.datasets import DatasetItem, DatasetLoader
+from eval_agent_lab.evals import EvaluationEngine, EvaluationReport
 from eval_agent_lab.evals.metrics import get_default_metrics
 from eval_agent_lab.evals.rubric import RubricConfig
 from eval_agent_lab.llm import BaseLLMProvider, LLMMessage
@@ -43,10 +42,10 @@ class Pipeline:
         self,
         config: AppConfig,
         mode: str = PipelineMode.AGENT,
-        llm: Optional[BaseLLMProvider] = None,
-        tools: Optional[ToolRegistry] = None,
-        eval_engine: Optional[EvaluationEngine] = None,
-        rubric: Optional[RubricConfig] = None,
+        llm: BaseLLMProvider | None = None,
+        tools: ToolRegistry | None = None,
+        eval_engine: EvaluationEngine | None = None,
+        rubric: RubricConfig | None = None,
     ):
         self.config = config
         self.mode = mode
@@ -86,13 +85,17 @@ class Pipeline:
         else:
             raise ValueError(f"Unknown provider: {self.config.llm.provider}")
 
-    async def run(self, dataset_path: str, output_dir: Optional[str] = None) -> EvaluationReport:
+    async def run(self, dataset_path: str, output_dir: str | None = None) -> EvaluationReport:
         """Run the full evaluation pipeline."""
         run_id = str(uuid.uuid4())[:8]
         out_dir = Path(output_dir) if output_dir else self.config.pipeline.output_dir
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        console.print(f"\n[bold cyan]== EvalAgentLab Pipeline ==[/bold cyan] [dim](run: {run_id})[/dim]")
+        header = (
+            f"\n[bold cyan]== EvalAgentLab Pipeline ==[/bold cyan]"
+            f" [dim](run: {run_id})[/dim]"
+        )
+        console.print(header)
         console.print(f"   Mode: [yellow]{self.mode}[/yellow]")
         console.print(f"   Model: [yellow]{self.config.llm.model}[/yellow]")
         console.print(f"   Rubric: [yellow]{self.rubric.name}[/yellow]")
@@ -109,8 +112,8 @@ class Pipeline:
 
         # Step 2: Run inference
         console.print(f"\n[bold]>> Running inference ({self.mode})...[/bold]")
-        results: List[Dict[str, Any]] = []
-        traces: List[AgentTrace] = []
+        results: list[dict[str, Any]] = []
+        traces: list[AgentTrace] = []
 
         with Progress(
             SpinnerColumn(),
@@ -186,7 +189,7 @@ class Pipeline:
         report.total_time_ms = round((time.perf_counter() - start) * 1000, 2)
 
         # Aggregate metrics
-        metric_scores: Dict[str, List[float]] = {}
+        metric_scores: dict[str, list[float]] = {}
         for result in report.results:
             for name, mr in result.metrics.items():
                 if mr.error is None:
@@ -275,7 +278,12 @@ class Pipeline:
 
         for result in report.results:
             status = "[green]✓[/green]" if result.composite_score >= 0.5 else "[red]✗[/red]"
-            score_color = "green" if result.composite_score >= 0.7 else "yellow" if result.composite_score >= 0.4 else "red"
+            if result.composite_score >= 0.7:
+                score_color = "green"
+            elif result.composite_score >= 0.4:
+                score_color = "yellow"
+            else:
+                score_color = "red"
             items_table.add_row(
                 result.item_id,
                 f"[{score_color}]{result.composite_score:.4f}[/{score_color}]",

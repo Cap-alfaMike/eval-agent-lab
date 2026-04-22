@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -27,8 +26,8 @@ class LLMConfig(BaseModel):
 
     provider: LLMProviderType = LLMProviderType.OPENAI
     model: str = "gpt-4o-mini"
-    api_key: Optional[str] = Field(default=None, description="API key (reads from env if None)")
-    base_url: Optional[str] = None
+    api_key: str | None = Field(default=None, description="API key (reads from env if None)")
+    base_url: str | None = None
     temperature: float = 0.0
     max_tokens: int = 4096
     timeout: float = 60.0
@@ -59,7 +58,7 @@ class ObservabilityConfig(BaseModel):
     """Configuration for logging and observability."""
 
     log_level: LogLevel = LogLevel.INFO
-    log_file: Optional[Path] = None
+    log_file: Path | None = None
     enable_trace_logging: bool = True
     enable_cost_tracking: bool = True
 
@@ -83,7 +82,7 @@ class AppConfig(BaseModel):
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
 
     @classmethod
-    def from_env(cls) -> "AppConfig":
+    def from_env(cls) -> AppConfig:
         """Create configuration from environment variables."""
         return cls(
             llm=LLMConfig(

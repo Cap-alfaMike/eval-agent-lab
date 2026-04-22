@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 
@@ -19,11 +19,14 @@ from eval_agent_lab.mcp import (
 class SearchTool(BaseTool):
     """Simulated web search tool for agent evaluation."""
 
-    def __init__(self, knowledge_base: Optional[Dict[str, str]] = None) -> None:
-        self._kb: Dict[str, str] = knowledge_base or {
+    def __init__(self, knowledge_base: dict[str, str] | None = None) -> None:
+        self._kb: dict[str, str] = knowledge_base or {
             "python": "Python is a high-level programming language created by Guido van Rossum.",
             "machine learning": "Machine learning enables systems to learn from data.",
-            "transformer": "The Transformer architecture was introduced in 'Attention Is All You Need'.",
+            "transformer": (
+                "The Transformer architecture was introduced in "
+                "'Attention Is All You Need'."
+            ),
             "mcp": "The Model Context Protocol is an open standard for AI tool interoperability.",
             "evaluation": "LLM evaluation includes accuracy, reasoning, and safety metrics.",
             "climate change": "Climate change refers to long-term shifts in global temperatures.",
@@ -43,10 +46,10 @@ class SearchTool(BaseTool):
             category="information_retrieval",
         )
 
-    async def execute(self, params: Dict[str, Any]) -> Any:
+    async def execute(self, params: dict[str, Any]) -> Any:
         query = params["query"].lower()
         max_results = params.get("max_results", 3)
-        results = []
+        results: list[dict[str, Any]] = []
         for topic, content in self._kb.items():
             query_words = set(query.split())
             topic_words = set(topic.split())
@@ -55,7 +58,7 @@ class SearchTool(BaseTool):
             if score > 0:
                 results.append({"topic": topic, "content": content,
                               "relevance_score": round(min(score / 5.0, 1.0), 3)})
-        results.sort(key=lambda x: x["relevance_score"], reverse=True)
+        results.sort(key=lambda x: float(x.get("relevance_score", 0)), reverse=True)
         return results[:max_results]
 
 
@@ -81,7 +84,7 @@ class CalculatorTool(BaseTool):
             category="computation",
         )
 
-    async def execute(self, params: Dict[str, Any]) -> Any:
+    async def execute(self, params: dict[str, Any]) -> Any:
         expression = params["expression"]
         if re.search(r"(import|exec|eval|open|__)", expression):
             raise ValueError(f"Unsafe expression: {expression}")
@@ -96,16 +99,36 @@ class CalculatorTool(BaseTool):
 class VectorRetrievalTool(BaseTool):
     """In-memory vector similarity search for document retrieval."""
 
-    def __init__(self, documents: Optional[List[Dict[str, Any]]] = None, embedding_dim: int = 64):
+    def __init__(self, documents: list[dict[str, Any]] | None = None, embedding_dim: int = 64):
         self._dim = embedding_dim
-        self._documents: List[Dict[str, Any]] = documents or [
-            {"id": "doc_1", "title": "Neural Networks", "content": "Neural networks are computing systems inspired by biological neural networks."},
-            {"id": "doc_2", "title": "Transformer Architecture", "content": "The transformer relies on self-attention mechanisms."},
-            {"id": "doc_3", "title": "RLHF", "content": "RLHF trains language models using human preferences."},
-            {"id": "doc_4", "title": "Prompt Engineering", "content": "Effective prompts include clear instructions and context."},
-            {"id": "doc_5", "title": "LLM Evaluation", "content": "Evaluating LLMs requires multi-dimensional assessment."},
+        self._documents: list[dict[str, Any]] = documents or [
+            {
+                "id": "doc_1", "title": "Neural Networks",
+                "content": "Neural networks are computing systems "
+                "inspired by biological neural networks.",
+            },
+            {
+                "id": "doc_2", "title": "Transformer Architecture",
+                "content": "The transformer relies on "
+                "self-attention mechanisms.",
+            },
+            {
+                "id": "doc_3", "title": "RLHF",
+                "content": "RLHF trains language models using "
+                "human preferences.",
+            },
+            {
+                "id": "doc_4", "title": "Prompt Engineering",
+                "content": "Effective prompts include clear "
+                "instructions and context.",
+            },
+            {
+                "id": "doc_5", "title": "LLM Evaluation",
+                "content": "Evaluating LLMs requires "
+                "multi-dimensional assessment.",
+            },
         ]
-        self._embeddings: Optional[np.ndarray] = None
+        self._embeddings: np.ndarray | None = None
         self._build_index()
 
     def _text_to_embedding(self, text: str) -> np.ndarray:
@@ -115,7 +138,10 @@ class VectorRetrievalTool(BaseTool):
         return vec / norm if norm > 0 else vec
 
     def _build_index(self) -> None:
-        embeddings = [self._text_to_embedding(f"{d['title']} {d['content']}") for d in self._documents]
+        embeddings = [
+            self._text_to_embedding(f"{d['title']} {d['content']}")
+            for d in self._documents
+        ]
         self._embeddings = np.stack(embeddings) if embeddings else np.empty((0, self._dim))
 
     def definition(self) -> ToolDefinition:
@@ -124,22 +150,27 @@ class VectorRetrievalTool(BaseTool):
             description="Retrieve documents using semantic similarity search.",
             parameters=[
                 ToolParameter(name="query", type=ParameterType.STRING, description="Search query"),
-                ToolParameter(name="top_k", type=ParameterType.INTEGER, description="Number of results", required=False, default=3),
+                ToolParameter(
+                    name="top_k", type=ParameterType.INTEGER,
+                    description="Number of results",
+                    required=False, default=3,
+                ),
             ],
             returns="List of documents with similarity scores",
             category="information_retrieval",
         )
 
-    async def execute(self, params: Dict[str, Any]) -> Any:
+    async def execute(self, params: dict[str, Any]) -> Any:
         query_emb = self._text_to_embedding(params["query"])
         top_k = params.get("top_k", 3)
+        assert self._embeddings is not None
         similarities = np.dot(self._embeddings, query_emb)
         scored = []
         for idx, score in enumerate(similarities):
             doc = self._documents[idx].copy()
             doc["similarity_score"] = round(float(score), 4)
             scored.append(doc)
-        scored.sort(key=lambda x: x["similarity_score"], reverse=True)
+        scored.sort(key=lambda x: float(x["similarity_score"]), reverse=True)
         return scored[:top_k]
 
 

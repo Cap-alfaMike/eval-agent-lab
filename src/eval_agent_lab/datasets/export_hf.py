@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 from eval_agent_lab.datasets import Dataset, DatasetLoader
 
@@ -96,7 +95,7 @@ def _dataset_to_jsonl(dataset: Dataset) -> str:
 def push_dataset_to_hf(
     dataset_path: str,
     repo_id: str,
-    token: Optional[str] = None,
+    token: str | None = None,
     private: bool = False,
 ) -> str:
     """Push an EvalAgentLab dataset to Hugging Face Hub.
@@ -145,7 +144,7 @@ def push_dataset_to_hf(
 
         # Also include original JSON for full-fidelity round-trip
         original_path = tmpdir_path / "data" / "dataset.json"
-        with open(dataset_path, "r", encoding="utf-8") as src:
+        with open(dataset_path, encoding="utf-8") as src:
             original_path.write_text(src.read(), encoding="utf-8")
 
         # Upload folder

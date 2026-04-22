@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from eval_agent_lab.config import CacheConfig, LLMConfig
 from eval_agent_lab.llm import BaseLLMProvider, LLMMessage, LLMResponse
@@ -11,9 +11,9 @@ from eval_agent_lab.llm import BaseLLMProvider, LLMMessage, LLMResponse
 class HuggingFaceProvider(BaseLLMProvider):
     """HuggingFace Transformers provider for local inference."""
 
-    def __init__(self, config: LLMConfig, cache_config: Optional[CacheConfig] = None):
+    def __init__(self, config: LLMConfig, cache_config: CacheConfig | None = None):
         super().__init__(config, cache_config)
-        self._pipeline: Optional[Any] = None
+        self._pipeline: Any | None = None
 
     def _get_pipeline(self) -> Any:
         if self._pipeline is None:
@@ -29,8 +29,8 @@ class HuggingFaceProvider(BaseLLMProvider):
                 raise ImportError("Install with: pip install eval-agent-lab[huggingface]") from exc
         return self._pipeline
 
-    async def _call(self, messages: List[LLMMessage],
-                    tools: Optional[List[Dict[str, Any]]] = None,
+    async def _call(self, messages: list[LLMMessage],
+                    tools: list[dict[str, Any]] | None = None,
                     **kwargs: Any) -> LLMResponse:
         pipe = self._get_pipeline()
         prompt = "\n".join(f"{m.role}: {m.content}" for m in messages)

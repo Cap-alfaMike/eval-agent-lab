@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -21,14 +21,14 @@ class EvaluationResult(BaseModel):
     input_text: str = ""
     expected_output: str = ""
     actual_output: str = ""
-    metrics: Dict[str, MetricResult] = Field(default_factory=dict)
-    judge_score: Optional[float] = None
-    judge_reasoning: Optional[str] = None
+    metrics: dict[str, MetricResult] = Field(default_factory=dict)
+    judge_score: float | None = None
+    judge_reasoning: str | None = None
     composite_score: float = 0.0
-    metric_breakdown: Dict[str, Any] = Field(default_factory=dict)
+    metric_breakdown: dict[str, Any] = Field(default_factory=dict)
     rubric_name: str = ""
     evaluation_time_ms: float = 0.0
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class EvaluationReport(BaseModel):
@@ -39,12 +39,12 @@ class EvaluationReport(BaseModel):
     total_items: int = 0
     successful_items: int = 0
     failed_items: int = 0
-    results: List[EvaluationResult] = Field(default_factory=list)
-    aggregate_metrics: Dict[str, float] = Field(default_factory=dict)
+    results: list[EvaluationResult] = Field(default_factory=list)
+    aggregate_metrics: dict[str, float] = Field(default_factory=dict)
     total_time_ms: float = 0.0
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "dataset": self.dataset_name,
             "model": self.model,
@@ -60,11 +60,11 @@ class EvaluationEngine:
 
     def __init__(
         self,
-        metrics: Optional[List[BaseMetric]] = None,
-        judge_llm: Optional[BaseLLMProvider] = None,
+        metrics: list[BaseMetric] | None = None,
+        judge_llm: BaseLLMProvider | None = None,
         use_judge: bool = False,
-        metric_weights: Optional[Dict[str, float]] = None,
-        rubric: Optional[RubricConfig] = None,
+        metric_weights: dict[str, float] | None = None,
+        rubric: RubricConfig | None = None,
     ):
         self.metrics = metrics or get_default_metrics()
         self.judge_llm = judge_llm
@@ -88,9 +88,9 @@ class EvaluationEngine:
         expected_output: str,
         actual_output: str,
         item_id: str = "",
-        trace: Optional[AgentTrace] = None,
-        expected_tools: Optional[List[str]] = None,
-        context: Optional[str] = None,
+        trace: AgentTrace | None = None,
+        expected_tools: list[str] | None = None,
+        context: str | None = None,
     ) -> EvaluationResult:
         """Evaluate a single prediction against a reference."""
         start = time.perf_counter()
@@ -102,7 +102,7 @@ class EvaluationEngine:
         )
 
         # Build extra kwargs for agent-specific metrics
-        extra_kwargs: Dict[str, Any] = {}
+        extra_kwargs: dict[str, Any] = {}
         if trace:
             extra_kwargs["steps"] = [s.model_dump() for s in trace.steps]
             extra_kwargs["total_steps"] = trace.total_steps
@@ -140,29 +140,32 @@ class EvaluationEngine:
         result.evaluation_time_ms = round((time.perf_counter() - start) * 1000, 2)
         return result
 
-    async def _run_judge(self, question: str, expected: str, response: str) -> Dict[str, Any]:
+    async def _run_judge(self, question: str, expected: str, response: str) -> dict[str, Any]:
         """Run LLM-as-judge evaluation."""
+        assert self.judge_llm is not None
         prompt = render_judge_prompt(question, expected, response)
         llm_response = await self.judge_llm.generate(
             [LLMMessage(role="user", content=prompt)]
         )
         try:
-            return json.loads(llm_response.content)
+            result: dict[str, Any] = json.loads(llm_response.content)
+            return result
         except json.JSONDecodeError:
             # Try to extract JSON from response
             content = llm_response.content
             start = content.find("{")
             end = content.rfind("}") + 1
             if start >= 0 and end > start:
-                return json.loads(content[start:end])
+                parsed: dict[str, Any] = json.loads(content[start:end])
+                return parsed
             return {"score": 3, "reasoning": content}
 
-    def _compute_composite(self, result: EvaluationResult) -> Dict[str, Any]:
+    def _compute_composite(self, result: EvaluationResult) -> dict[str, Any]:
         """Compute weighted composite score from all metrics using the rubric.
 
         Returns a structured dict with composite_score and per-metric breakdown.
         """
-        breakdown: Dict[str, Any] = {}
+        breakdown: dict[str, Any] = {}
         weighted_sum = 0.0
         total_weight = 0.0
 
@@ -201,7 +204,7 @@ class EvaluationEngine:
         }
 
     async def evaluate_batch(
-        self, items: List[Dict[str, Any]]
+        self, items: list[dict[str, Any]]
     ) -> EvaluationReport:
         """Evaluate a batch of items and produce an aggregated report."""
         import uuid
@@ -225,7 +228,7 @@ class EvaluationEngine:
                 report.failed_items += 1
 
         # Aggregate metrics
-        metric_scores: Dict[str, List[float]] = {}
+        metric_scores: dict[str, list[float]] = {}
         for result in report.results:
             for name, mr in result.metrics.items():
                 if mr.error is None:

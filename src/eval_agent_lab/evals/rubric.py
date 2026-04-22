@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -52,19 +52,19 @@ class RubricConfig(BaseModel):
 
     name: str = "default"
     description: str = ""
-    metrics: List[MetricWeight] = Field(default_factory=list)
+    metrics: list[MetricWeight] = Field(default_factory=list)
     default_weight: float = Field(default=1.0, ge=0.0)
     judge_weight: float = Field(default=2.0, ge=0.0)
     strict: bool = False
     pass_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     # ------------------------------------------------------------------
     # Validation
     # ------------------------------------------------------------------
 
     @model_validator(mode="after")
-    def _validate_rubric(self) -> "RubricConfig":
+    def _validate_rubric(self) -> RubricConfig:
         """Enforce strict-mode constraints when enabled."""
         if not self.strict:
             return self
@@ -91,7 +91,7 @@ class RubricConfig(BaseModel):
     # Weight resolution helpers
     # ------------------------------------------------------------------
 
-    def get_weight_map(self) -> Dict[str, float]:
+    def get_weight_map(self) -> dict[str, float]:
         """Return {metric_name: weight} for explicitly listed metrics."""
         return {mw.name: mw.weight for mw in self.metrics}
 
@@ -101,7 +101,7 @@ class RubricConfig(BaseModel):
         return weight_map.get(metric_name, self.default_weight)
 
     @property
-    def metric_names(self) -> List[str]:
+    def metric_names(self) -> list[str]:
         """Return the list of explicitly configured metric names."""
         return [mw.name for mw in self.metrics]
 
@@ -110,14 +110,14 @@ class RubricConfig(BaseModel):
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_json(cls, path: str | Path) -> "RubricConfig":
+    def from_json(cls, path: str | Path) -> RubricConfig:
         """Load a rubric from a JSON file."""
         path = Path(path)
         if not path.exists():
             raise RubricValidationError(f"Rubric file not found: {path}")
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as exc:
             raise RubricValidationError(
@@ -143,12 +143,12 @@ class RubricConfig(BaseModel):
     # ------------------------------------------------------------------
 
     @classmethod
-    def balanced(cls) -> "RubricConfig":
+    def balanced(cls) -> RubricConfig:
         """Return a balanced rubric where every metric has weight 1.0."""
         return cls(name="balanced", description="Equal-weight rubric")
 
     @classmethod
-    def accuracy_focused(cls) -> "RubricConfig":
+    def accuracy_focused(cls) -> RubricConfig:
         """Return a rubric that emphasizes correctness metrics."""
         return cls(
             name="accuracy_focused",
@@ -167,7 +167,7 @@ class RubricConfig(BaseModel):
         )
 
     @classmethod
-    def agent_focused(cls) -> "RubricConfig":
+    def agent_focused(cls) -> RubricConfig:
         """Return a rubric that emphasizes agent behaviour metrics."""
         return cls(
             name="agent_focused",

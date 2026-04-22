@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from pydantic import BaseModel, Field
 from rich.console import Console
@@ -27,7 +27,7 @@ class MetricDelta(BaseModel):
     run_a: float
     run_b: float
     delta: float
-    pct_change: Optional[float] = None
+    pct_change: float | None = None
     direction: str = ""  # "improved", "regressed", "unchanged"
 
 
@@ -39,21 +39,22 @@ class RunComparison(BaseModel):
     run_b_model: str = ""
     run_a_dataset: str = ""
     run_b_dataset: str = ""
-    metric_deltas: List[MetricDelta] = Field(default_factory=list)
+    metric_deltas: list[MetricDelta] = Field(default_factory=list)
     improved_count: int = 0
     regressed_count: int = 0
     unchanged_count: int = 0
     summary: str = ""
 
 
-def _load_report(path: str | Path) -> Dict[str, Any]:
+def _load_report(path: str | Path) -> dict[str, Any]:
     """Load a report JSON file."""
     path = Path(path)
     if not path.exists():
         raise ComparisonError(f"Report file not found: {path}")
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with open(path, encoding="utf-8") as f:
+            data: dict[str, Any] = json.load(f)
+            return data
     except json.JSONDecodeError as exc:
         raise ComparisonError(f"Invalid JSON in report {path}: {exc}") from exc
 
@@ -85,13 +86,13 @@ def compare_runs(
     report_a = _load_report(run_a_path)
     report_b = _load_report(run_b_path)
 
-    metrics_a: Dict[str, float] = report_a.get("aggregate_metrics", {})
-    metrics_b: Dict[str, float] = report_b.get("aggregate_metrics", {})
+    metrics_a: dict[str, float] = report_a.get("aggregate_metrics", {})
+    metrics_b: dict[str, float] = report_b.get("aggregate_metrics", {})
 
     # Union of all metric keys
     all_keys = sorted(set(metrics_a.keys()) | set(metrics_b.keys()))
 
-    deltas: List[MetricDelta] = []
+    deltas: list[MetricDelta] = []
     improved = regressed = unchanged = 0
 
     for key in all_keys:
@@ -168,7 +169,7 @@ def compare_runs(
     )
 
 
-def display_comparison(comparison: RunComparison, console: Optional[Console] = None) -> None:
+def display_comparison(comparison: RunComparison, console: Console | None = None) -> None:
     """Render a RunComparison as a rich terminal table."""
     console = console or Console(highlight=False)
 

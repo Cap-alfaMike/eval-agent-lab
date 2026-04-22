@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
 
 from eval_agent_lab import __version__
-from eval_agent_lab.config import AppConfig, LLMProviderType
+from eval_agent_lab.config import AppConfig, LLMConfig, LLMProviderType, LogLevel
 
 app = typer.Typer(
     name="eval-agent-lab",
@@ -25,20 +24,33 @@ def run_pipeline(
     dataset: str = typer.Argument(..., help="Path to the evaluation dataset JSON file"),
     mode: str = typer.Option("agent", "--mode", "-m", help="Execution mode: 'agent' or 'llm_only'"),
     model: str = typer.Option("gpt-4o-mini", "--model", help="LLM model to use"),
-    provider: str = typer.Option("openai", "--provider", "-p", help="LLM provider: 'openai' or 'huggingface'"),
-    output_dir: str = typer.Option("outputs", "--output", "-o", help="Output directory for reports"),
+    provider: str = typer.Option(
+        "openai", "--provider", "-p",
+        help="LLM provider: 'openai' or 'huggingface'",
+    ),
+    output_dir: str = typer.Option(
+        "outputs", "--output", "-o",
+        help="Output directory for reports",
+    ),
     max_concurrent: int = typer.Option(5, "--concurrent", "-c", help="Max concurrent evaluations"),
     use_judge: bool = typer.Option(False, "--judge", help="Enable LLM-as-judge evaluation"),
     temperature: float = typer.Option(0.0, "--temperature", "-t", help="LLM temperature"),
     stream: bool = typer.Option(False, "--stream", help="Enable streaming LLM responses"),
-    rubric: Optional[str] = typer.Option(None, "--rubric", "-r", help="Path to rubric JSON file"),
+    rubric: str | None = typer.Option(None, "--rubric", "-r", help="Path to rubric JSON file"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging"),
 ) -> None:
     """Run an evaluation pipeline on a dataset."""
+    from eval_agent_lab.config import ObservabilityConfig, PipelineConfig
+
     config = AppConfig(
-        llm={"provider": provider, "model": model, "temperature": temperature, "stream": stream},
-        pipeline={"max_concurrent": max_concurrent, "output_dir": Path(output_dir)},
-        observability={"log_level": "DEBUG" if verbose else "INFO"},
+        llm=LLMConfig(
+            provider=LLMProviderType(provider),
+            model=model,
+            temperature=temperature,
+            stream=stream,
+        ),
+        pipeline=PipelineConfig(max_concurrent=max_concurrent, output_dir=Path(output_dir)),
+        observability=ObservabilityConfig(log_level=LogLevel("DEBUG" if verbose else "INFO")),
     )
 
     # Load rubric if provided
@@ -58,10 +70,10 @@ def run_pipeline(
         raise typer.Exit(0 if report.successful_items > 0 else 1)
     except KeyboardInterrupt:
         console.print("\n[yellow]Pipeline interrupted by user.[/yellow]")
-        raise typer.Exit(130)
+        raise typer.Exit(130) from None
     except Exception as exc:
         console.print(f"\n[red]Pipeline failed: {exc}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command("validate")
@@ -83,15 +95,16 @@ def validate_dataset(
                 console.print(f"     [!] {w}")
     except Exception as exc:
         console.print(f"[red][FAIL] Validation failed: {exc}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command("list-tools")
 def list_tools() -> None:
     """List all registered MCP tools."""
+    from rich.table import Table
+
     from eval_agent_lab.mcp import ToolRegistry
     from eval_agent_lab.mcp.tools import register_default_tools
-    from rich.table import Table
 
     registry = ToolRegistry()
     register_default_tools(registry)
@@ -120,7 +133,7 @@ def compare_runs_cmd(
     run_a: str = typer.Argument(..., help="Path to the baseline report JSON (Run A)"),
     run_b: str = typer.Argument(..., help="Path to the candidate report JSON (Run B)"),
     threshold: float = typer.Option(0.005, "--threshold", help="Min delta to classify as changed"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="Save comparison JSON to path"),
+    output: str | None = typer.Option(None, "--output", "-o", help="Save comparison JSON to path"),
 ) -> None:
     """Compare two evaluation runs (A/B testing)."""
     from eval_agent_lab.evals.comparison import compare_runs, display_comparison
@@ -138,14 +151,14 @@ def compare_runs_cmd(
             console.print(f"  [green][OK] Comparison saved to {out_path}[/green]")
     except Exception as exc:
         console.print(f"[red][FAIL] Comparison failed: {exc}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command("push-dataset")
 def push_dataset_cmd(
     dataset: str = typer.Argument(..., help="Path to the dataset JSON file"),
     repo: str = typer.Option(..., "--repo", help="HF Hub repo id (e.g. username/eval-benchmark)"),
-    token: Optional[str] = typer.Option(None, "--token", help="HF API token (or set HF_TOKEN env)"),
+    token: str | None = typer.Option(None, "--token", help="HF API token (or set HF_TOKEN env)"),
     private: bool = typer.Option(False, "--private", help="Create a private repository"),
 ) -> None:
     """Push an evaluation dataset to Hugging Face Hub."""
@@ -157,13 +170,14 @@ def push_dataset_cmd(
         console.print(f"  [green][OK] Published at {url}[/green]")
     except Exception as exc:
         console.print(f"[red][FAIL] Push failed: {exc}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command("demo")
 def run_demo() -> None:
     """Run a quick demo with built-in tools (no API key required)."""
     import asyncio
+
     from eval_agent_lab.mcp import ToolRegistry
     from eval_agent_lab.mcp.tools import register_default_tools
 
@@ -176,25 +190,27 @@ def run_demo() -> None:
         # Demo search
         console.print("[bold]1. Search Tool[/bold]")
         result = await registry.invoke("search", {"query": "transformer architecture"})
-        console.print(f"   Query: 'transformer architecture'")
+        console.print("   Query: 'transformer architecture'")
         console.print(f"   Result: {result.output}\n")
 
         # Demo calculator
         console.print("[bold]2. Calculator Tool[/bold]")
         result = await registry.invoke("calculator", {"expression": "sqrt(144) + 2 * pi"})
-        console.print(f"   Expression: 'sqrt(144) + 2 * pi'")
+        console.print("   Expression: 'sqrt(144) + 2 * pi'")
         console.print(f"   Result: {result.output}\n")
 
         # Demo vector retrieval
         console.print("[bold]3. Vector Retrieval Tool[/bold]")
         result = await registry.invoke("vector_retrieval", {"query": "neural networks", "top_k": 2})
-        console.print(f"   Query: 'neural networks'")
+        console.print("   Query: 'neural networks'")
         console.print(f"   Result: {result.output}\n")
 
         # Demo evaluation
         console.print("[bold]4. Evaluation Metrics[/bold]")
         from eval_agent_lab.evals.metrics import (
-            ExactMatchMetric, ContainsAnswerMetric, SemanticSimilarityMetric
+            ContainsAnswerMetric,
+            ExactMatchMetric,
+            SemanticSimilarityMetric,
         )
         prediction = "Python is a programming language created by Guido van Rossum"
         reference = "Python"
