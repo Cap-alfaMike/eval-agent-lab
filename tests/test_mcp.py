@@ -1,23 +1,21 @@
 """Unit tests for the MCP tool system."""
 
+
 import pytest
-import asyncio
+
+from eval_agent_lab.exceptions import ToolNotFoundError
 from eval_agent_lab.mcp import (
-    BaseTool,
+    ParameterType,
     ToolDefinition,
     ToolParameter,
-    ParameterType,
     ToolRegistry,
-    ToolResult,
 )
 from eval_agent_lab.mcp.tools import (
-    SearchTool,
     CalculatorTool,
+    SearchTool,
     VectorRetrievalTool,
     register_default_tools,
 )
-from eval_agent_lab.exceptions import ToolNotFoundError, ToolValidationError
-
 
 # --- Tool Definition Tests ---
 

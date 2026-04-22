@@ -1,6 +1,5 @@
 """Test configuration and shared fixtures."""
 
-import pytest
 
 
 def pytest_configure(config):

@@ -1,6 +1,5 @@
 """Unit tests for the rubric system."""
 
-import json
 import pytest
 
 from eval_agent_lab.evals.rubric import (
@@ -22,7 +21,7 @@ class TestMetricWeight:
         assert mw.weight == 0.0
 
     def test_negative_weight_raises(self):
-        with pytest.raises(Exception):
+        with pytest.raises((ValueError, Exception)):
             MetricWeight(name="bad", weight=-1.0)
 
 

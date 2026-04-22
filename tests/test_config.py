@@ -1,8 +1,8 @@
 """Unit tests for configuration management."""
 
-import os
 import pytest
-from eval_agent_lab.config import AppConfig, LLMConfig, CacheConfig, LLMProviderType
+
+from eval_agent_lab.config import AppConfig, LLMConfig, LLMProviderType
 
 
 @pytest.mark.unit

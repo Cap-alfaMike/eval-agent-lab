@@ -1,14 +1,12 @@
 """Unit tests for run comparison (A/B testing)."""
 
 import json
+
 import pytest
-from pathlib import Path
 
 from eval_agent_lab.evals.comparison import (
-    MetricDelta,
-    RunComparison,
-    compare_runs,
     ComparisonError,
+    compare_runs,
 )
 
 

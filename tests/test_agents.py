@@ -1,6 +1,7 @@
 """Unit tests for the agent system."""
 
 import pytest
+
 from eval_agent_lab.agents import (
     AgentStep,
     AgentTrace,

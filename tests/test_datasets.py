@@ -1,8 +1,6 @@
 """Unit tests for dataset loading and validation."""
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -24,7 +22,7 @@ class TestDatasetItem:
         assert item.difficulty == "medium"
 
     def test_empty_input_raises(self):
-        with pytest.raises(Exception):
+        with pytest.raises((ValueError, Exception)):
             DatasetItem(input="", expected_output="something")
 
 

@@ -1,14 +1,14 @@
 """Unit tests for the HF dataset export module."""
 
 import json
-import pytest
-from pathlib import Path
 
+import pytest
+
+from eval_agent_lab.datasets import DatasetLoader
 from eval_agent_lab.datasets.export_hf import (
     _build_dataset_card,
     _dataset_to_jsonl,
 )
-from eval_agent_lab.datasets import DatasetLoader
 
 
 @pytest.mark.unit

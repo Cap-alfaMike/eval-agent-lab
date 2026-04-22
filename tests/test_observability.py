@@ -1,6 +1,7 @@
 """Unit tests for observability: cost tracking and trace logging."""
 
 import pytest
+
 from eval_agent_lab.observability import CostTracker
 
 

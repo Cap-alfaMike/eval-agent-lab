@@ -1,18 +1,19 @@
 """Unit tests for the evaluation engine and metrics."""
 
 import pytest
+
+from eval_agent_lab.evals import EvaluationEngine
 from eval_agent_lab.evals.metrics import (
-    ExactMatchMetric,
     ContainsAnswerMetric,
-    LevenshteinMetric,
-    SemanticSimilarityMetric,
+    ExactMatchMetric,
     HallucinationDetector,
-    ToolSelectionAccuracy,
+    LevenshteinMetric,
     ReasoningConsistencyMetric,
+    SemanticSimilarityMetric,
     StepEfficiencyMetric,
+    ToolSelectionAccuracy,
     get_default_metrics,
 )
-from eval_agent_lab.evals import EvaluationEngine
 
 
 @pytest.mark.unit
