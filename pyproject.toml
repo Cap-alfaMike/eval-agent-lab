@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eval-agent-lab"
+version = "0.1.0"
+description = "LLM Evaluation & Agent Reliability Framework"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+authors = [
+    {name = "EvalAgentLab Contributors"}
+]
+keywords = ["llm", "evaluation", "agents", "mcp", "mlops"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "openai>=1.12.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.5.0",
+    "rich>=13.7.0",
+    "typer>=0.9.0",
+    "numpy>=1.26.0",
+    "scikit-learn>=1.4.0",
+    "sentence-transformers>=2.5.0",
+    "jinja2>=3.1.0",
+    "pyyaml>=6.0",
+    "tenacity>=8.2.0",
+    "diskcache>=5.6.0",
+    "tiktoken>=0.6.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "structlog>=24.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.2.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
+huggingface = [
+    "transformers>=4.38.0",
+    "torch>=2.2.0",
+    "accelerate>=0.27.0",
+]
+
+[project.scripts]
+eval-agent-lab = "eval_agent_lab.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests (may require API keys)",
+    "evaluation: Evaluation pipeline tests",
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

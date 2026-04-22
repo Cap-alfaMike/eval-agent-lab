@@ -1,0 +1,94 @@
+{
+  "name": "core_evaluation_suite",
+  "description": "Core evaluation dataset for testing LLM and agent capabilities across knowledge, reasoning, tool use, and multi-step tasks.",
+  "version": "1.0.0",
+  "metadata": {
+    "author": "EvalAgentLab",
+    "created": "2024-01-01",
+    "categories": ["knowledge", "reasoning", "tool_use", "multi_step"]
+  },
+  "items": [
+    {
+      "id": "knowledge_001",
+      "input": "What programming language was created by Guido van Rossum?",
+      "expected_output": "Python",
+      "expected_tools": ["search"],
+      "context": "Programming languages history",
+      "category": "knowledge",
+      "difficulty": "easy"
+    },
+    {
+      "id": "knowledge_002",
+      "input": "What architecture is the foundation of modern LLMs like GPT and Claude?",
+      "expected_output": "The Transformer architecture",
+      "expected_tools": ["search"],
+      "context": "AI and machine learning",
+      "category": "knowledge",
+      "difficulty": "easy"
+    },
+    {
+      "id": "reasoning_001",
+      "input": "If a train travels 120 km in 2 hours, what is its average speed in km/h?",
+      "expected_output": "60",
+      "expected_tools": ["calculator"],
+      "category": "reasoning",
+      "difficulty": "easy"
+    },
+    {
+      "id": "reasoning_002",
+      "input": "Calculate the area of a circle with radius 7. Use pi = 3.14159.",
+      "expected_output": "153.938",
+      "expected_tools": ["calculator"],
+      "category": "reasoning",
+      "difficulty": "medium"
+    },
+    {
+      "id": "tool_use_001",
+      "input": "Search for information about the Model Context Protocol and summarize what it is.",
+      "expected_output": "The Model Context Protocol (MCP) is an open standard for connecting AI assistants to external data sources and tools.",
+      "expected_tools": ["search"],
+      "category": "tool_use",
+      "difficulty": "medium"
+    },
+    {
+      "id": "tool_use_002",
+      "input": "Find documents related to transformer architecture in the knowledge base.",
+      "expected_output": "The transformer model relies on self-attention mechanisms.",
+      "expected_tools": ["vector_retrieval"],
+      "category": "tool_use",
+      "difficulty": "medium"
+    },
+    {
+      "id": "multi_step_001",
+      "input": "First, search for what machine learning is. Then calculate 2 raised to the power of 10.",
+      "expected_output": "Machine learning enables systems to learn from data. 2^10 = 1024.",
+      "expected_tools": ["search", "calculator"],
+      "category": "multi_step",
+      "difficulty": "hard"
+    },
+    {
+      "id": "multi_step_002",
+      "input": "Find information about quantum computing, then calculate the square root of 256.",
+      "expected_output": "Quantum computing uses superposition and entanglement. sqrt(256) = 16.",
+      "expected_tools": ["search", "calculator"],
+      "category": "multi_step",
+      "difficulty": "hard"
+    },
+    {
+      "id": "reasoning_003",
+      "input": "What is the factorial of 6?",
+      "expected_output": "720",
+      "expected_tools": ["calculator"],
+      "category": "reasoning",
+      "difficulty": "easy"
+    },
+    {
+      "id": "knowledge_003",
+      "input": "What is RLHF and what is it used for?",
+      "expected_output": "RLHF (Reinforcement Learning from Human Feedback) is a technique for training language models using human preferences.",
+      "expected_tools": ["vector_retrieval"],
+      "category": "knowledge",
+      "difficulty": "medium"
+    }
+  ]
+}

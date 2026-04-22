@@ -1,0 +1,51 @@
+{
+  "name": "tool_selection_benchmark",
+  "description": "Benchmark dataset focused on evaluating agent tool selection accuracy.",
+  "version": "1.0.0",
+  "metadata": {
+    "author": "EvalAgentLab",
+    "focus": "tool_selection"
+  },
+  "items": [
+    {
+      "id": "ts_001",
+      "input": "What is 15 * 23 + 7?",
+      "expected_output": "352",
+      "expected_tools": ["calculator"],
+      "category": "computation",
+      "difficulty": "easy"
+    },
+    {
+      "id": "ts_002",
+      "input": "Tell me about climate change and its causes.",
+      "expected_output": "Climate change refers to long-term shifts in global temperatures, primarily caused by burning fossil fuels.",
+      "expected_tools": ["search"],
+      "category": "search",
+      "difficulty": "easy"
+    },
+    {
+      "id": "ts_003",
+      "input": "Find documents about prompt engineering best practices.",
+      "expected_output": "Effective prompts include clear instructions, relevant context, and few-shot examples.",
+      "expected_tools": ["vector_retrieval"],
+      "category": "retrieval",
+      "difficulty": "medium"
+    },
+    {
+      "id": "ts_004",
+      "input": "Calculate log base 10 of 1000.",
+      "expected_output": "3",
+      "expected_tools": ["calculator"],
+      "category": "computation",
+      "difficulty": "easy"
+    },
+    {
+      "id": "ts_005",
+      "input": "Search for information about LLM evaluation methodologies and retrieve relevant papers.",
+      "expected_output": "LLM evaluation requires multi-dimensional assessment including benchmarks and human evaluation.",
+      "expected_tools": ["search", "vector_retrieval"],
+      "category": "multi_tool",
+      "difficulty": "hard"
+    }
+  ]
+}
