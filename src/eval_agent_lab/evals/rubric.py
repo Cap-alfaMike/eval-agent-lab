@@ -120,16 +120,12 @@ class RubricConfig(BaseModel):
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as exc:
-            raise RubricValidationError(
-                f"Invalid JSON in rubric file {path}: {exc}"
-            ) from exc
+            raise RubricValidationError(f"Invalid JSON in rubric file {path}: {exc}") from exc
 
         try:
             return cls(**data)
         except Exception as exc:
-            raise RubricValidationError(
-                f"Failed to parse rubric from {path}: {exc}"
-            ) from exc
+            raise RubricValidationError(f"Failed to parse rubric from {path}: {exc}") from exc
 
     def to_json(self, path: str | Path) -> None:
         """Persist rubric to a JSON file."""

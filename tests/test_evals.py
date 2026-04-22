@@ -118,9 +118,7 @@ class TestToolSelectionAccuracy:
     @pytest.mark.asyncio
     async def test_wrong_selection(self):
         m = ToolSelectionAccuracy()
-        result = await m.compute(
-            "", "", expected_tools=["search"], actual_tools=["calculator"]
-        )
+        result = await m.compute("", "", expected_tools=["search"], actual_tools=["calculator"])
         assert result.score == 0.0
 
     @pytest.mark.asyncio

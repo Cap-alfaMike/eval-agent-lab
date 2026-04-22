@@ -21,6 +21,7 @@ from eval_agent_lab.exceptions import (
 # Tool Schema Definitions (JSON Schema-based, MCP-style)
 # ---------------------------------------------------------------------------
 
+
 class ParameterType(str, Enum):
     STRING = "string"
     INTEGER = "integer"
@@ -89,6 +90,7 @@ class ToolDefinition(BaseModel):
 # Tool Execution Result
 # ---------------------------------------------------------------------------
 
+
 class ToolResult(BaseModel):
     """Standardized result from tool execution."""
 
@@ -103,6 +105,7 @@ class ToolResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Base Tool Interface
 # ---------------------------------------------------------------------------
+
 
 class BaseTool(abc.ABC):
     """Abstract base class for all MCP-inspired tools.
@@ -138,11 +141,7 @@ class BaseTool(abc.ABC):
                 )
 
             # Enum validation
-            if (
-                param.name in validated
-                and param.enum
-                and validated[param.name] not in param.enum
-            ):
+            if param.name in validated and param.enum and validated[param.name] not in param.enum:
                 raise ToolValidationError(
                     f"Parameter '{param.name}' must be one of "
                     f"{param.enum}, got '{validated[param.name]}'"
@@ -192,6 +191,7 @@ class BaseTool(abc.ABC):
 # ---------------------------------------------------------------------------
 # Tool Registry (MCP-style dynamic registration & discovery)
 # ---------------------------------------------------------------------------
+
 
 class ToolRegistry:
     """Central registry for tool discovery, registration, and invocation.

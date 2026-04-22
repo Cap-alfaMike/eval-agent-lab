@@ -13,6 +13,7 @@ from eval_agent_lab.exceptions import DatasetValidationError
 
 class DatasetItem(BaseModel):
     """A single item in an evaluation dataset."""
+
     id: str = ""
     input: str
     expected_output: str
@@ -32,6 +33,7 @@ class DatasetItem(BaseModel):
 
 class Dataset(BaseModel):
     """Evaluation dataset container."""
+
     name: str
     description: str = ""
     version: str = "1.0.0"
@@ -44,13 +46,21 @@ class Dataset(BaseModel):
 
     def filter_by_category(self, category: str) -> Dataset:
         filtered = [item for item in self.items if item.category == category]
-        return Dataset(name=f"{self.name}_{category}", description=self.description,
-                      items=filtered, metadata=self.metadata)
+        return Dataset(
+            name=f"{self.name}_{category}",
+            description=self.description,
+            items=filtered,
+            metadata=self.metadata,
+        )
 
     def filter_by_difficulty(self, difficulty: str) -> Dataset:
         filtered = [item for item in self.items if item.difficulty == difficulty]
-        return Dataset(name=f"{self.name}_{difficulty}", description=self.description,
-                      items=filtered, metadata=self.metadata)
+        return Dataset(
+            name=f"{self.name}_{difficulty}",
+            description=self.description,
+            items=filtered,
+            metadata=self.metadata,
+        )
 
 
 class DatasetLoader:
@@ -91,9 +101,7 @@ class DatasetLoader:
             try:
                 items.append(DatasetItem(**item_data))
             except Exception as exc:
-                raise DatasetValidationError(
-                    f"Invalid item at index {idx}: {exc}"
-                ) from exc
+                raise DatasetValidationError(f"Invalid item at index {idx}: {exc}") from exc
 
         return Dataset(
             name=data.get("name", default_name),

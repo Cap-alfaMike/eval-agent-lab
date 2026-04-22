@@ -17,6 +17,7 @@ from eval_agent_lab.llm.prompts import render_judge_prompt
 
 class EvaluationResult(BaseModel):
     """Result of evaluating a single item."""
+
     item_id: str = ""
     input_text: str = ""
     expected_output: str = ""
@@ -33,6 +34,7 @@ class EvaluationResult(BaseModel):
 
 class EvaluationReport(BaseModel):
     """Aggregated evaluation report across all items."""
+
     report_id: str = ""
     dataset_name: str = ""
     model: str = ""
@@ -75,6 +77,7 @@ class EvaluationEngine:
         # bake them into the rubric so behaviour is identical.
         if metric_weights and rubric is None:
             from eval_agent_lab.evals.rubric import MetricWeight
+
             self.rubric = RubricConfig(
                 name="custom",
                 metrics=[MetricWeight(name=n, weight=w) for n, w in metric_weights.items()],
@@ -144,9 +147,7 @@ class EvaluationEngine:
         """Run LLM-as-judge evaluation."""
         assert self.judge_llm is not None
         prompt = render_judge_prompt(question, expected, response)
-        llm_response = await self.judge_llm.generate(
-            [LLMMessage(role="user", content=prompt)]
-        )
+        llm_response = await self.judge_llm.generate([LLMMessage(role="user", content=prompt)])
         try:
             result: dict[str, Any] = json.loads(llm_response.content)
             return result
@@ -172,7 +173,10 @@ class EvaluationEngine:
         for name, mr in result.metrics.items():
             if mr.error:
                 breakdown[name] = {
-                    "score": 0.0, "weight": 0.0, "weighted": 0.0, "error": mr.error,
+                    "score": 0.0,
+                    "weight": 0.0,
+                    "weighted": 0.0,
+                    "error": mr.error,
                 }
                 continue
             w = self.rubric.weight_for(name)
@@ -203,11 +207,10 @@ class EvaluationEngine:
             "metric_breakdown": breakdown,
         }
 
-    async def evaluate_batch(
-        self, items: list[dict[str, Any]]
-    ) -> EvaluationReport:
+    async def evaluate_batch(self, items: list[dict[str, Any]]) -> EvaluationReport:
         """Evaluate a batch of items and produce an aggregated report."""
         import uuid
+
         report = EvaluationReport(report_id=str(uuid.uuid4()))
         start = time.perf_counter()
 

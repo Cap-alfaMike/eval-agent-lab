@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 class MetricResult(BaseModel):
     """Result from a single metric computation."""
+
     metric_name: str
     score: float  # 0.0 - 1.0 normalized
     raw_score: Any = None
@@ -23,18 +24,16 @@ class BaseMetric(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def name(self) -> str:
-        ...
+    def name(self) -> str: ...
 
     @abc.abstractmethod
-    async def compute(self, prediction: str, reference: str,
-                      **kwargs: Any) -> MetricResult:
-        ...
+    async def compute(self, prediction: str, reference: str, **kwargs: Any) -> MetricResult: ...
 
 
 # ---------------------------------------------------------------------------
 # Deterministic Metrics
 # ---------------------------------------------------------------------------
+
 
 class ExactMatchMetric(BaseMetric):
     """Exact string match (case-insensitive, whitespace-normalized)."""
@@ -47,8 +46,12 @@ class ExactMatchMetric(BaseMetric):
         pred_norm = " ".join(prediction.strip().lower().split())
         ref_norm = " ".join(reference.strip().lower().split())
         match = pred_norm == ref_norm
-        return MetricResult(metric_name=self.name, score=1.0 if match else 0.0,
-                          raw_score=match, details={"prediction": pred_norm, "reference": ref_norm})
+        return MetricResult(
+            metric_name=self.name,
+            score=1.0 if match else 0.0,
+            raw_score=match,
+            details={"prediction": pred_norm, "reference": ref_norm},
+        )
 
 
 class ContainsAnswerMetric(BaseMetric):
@@ -62,8 +65,9 @@ class ContainsAnswerMetric(BaseMetric):
         pred_lower = prediction.lower()
         ref_lower = reference.lower()
         contains = ref_lower in pred_lower
-        return MetricResult(metric_name=self.name, score=1.0 if contains else 0.0,
-                          raw_score=contains)
+        return MetricResult(
+            metric_name=self.name, score=1.0 if contains else 0.0, raw_score=contains
+        )
 
 
 class LevenshteinMetric(BaseMetric):
@@ -90,17 +94,18 @@ class LevenshteinMetric(BaseMetric):
         for i in range(1, rows):
             for j in range(1, cols):
                 cost = 0 if s1[i - 1] == s2[j - 1] else 1
-                dist[i][j] = min(dist[i - 1][j] + 1, dist[i][j - 1] + 1,
-                                dist[i - 1][j - 1] + cost)
+                dist[i][j] = min(dist[i - 1][j] + 1, dist[i][j - 1] + 1, dist[i - 1][j - 1] + cost)
         max_len = max(len(s1), len(s2))
         similarity = 1 - dist[rows - 1][cols - 1] / max_len
-        return MetricResult(metric_name=self.name, score=round(similarity, 4),
-                          raw_score=dist[rows - 1][cols - 1])
+        return MetricResult(
+            metric_name=self.name, score=round(similarity, 4), raw_score=dist[rows - 1][cols - 1]
+        )
 
 
 # ---------------------------------------------------------------------------
 # Semantic Metrics
 # ---------------------------------------------------------------------------
+
 
 class SemanticSimilarityMetric(BaseMetric):
     """Embedding-based semantic similarity using sentence-transformers."""
@@ -113,6 +118,7 @@ class SemanticSimilarityMetric(BaseMetric):
         if self._model is None:
             try:
                 from sentence_transformers import SentenceTransformer
+
                 self._model = SentenceTransformer(self._model_name)
             except ImportError:
                 return None
@@ -129,25 +135,29 @@ class SemanticSimilarityMetric(BaseMetric):
             pred_words = set(prediction.lower().split())
             ref_words = set(reference.lower().split())
             if not pred_words or not ref_words:
-                return MetricResult(metric_name=self.name, score=0.0,
-                                  details={"fallback": "word_overlap"})
+                return MetricResult(
+                    metric_name=self.name, score=0.0, details={"fallback": "word_overlap"}
+                )
             overlap = len(pred_words & ref_words) / len(pred_words | ref_words)
-            return MetricResult(metric_name=self.name, score=round(overlap, 4),
-                              details={"fallback": "word_overlap"})
+            return MetricResult(
+                metric_name=self.name, score=round(overlap, 4), details={"fallback": "word_overlap"}
+            )
 
         import numpy as np
+
         embs = model.encode([prediction, reference])
-        cos_sim = float(np.dot(embs[0], embs[1]) /
-                       (np.linalg.norm(embs[0]) * np.linalg.norm(embs[1]) + 1e-8))
+        cos_sim = float(
+            np.dot(embs[0], embs[1]) / (np.linalg.norm(embs[0]) * np.linalg.norm(embs[1]) + 1e-8)
+        )
         # Normalize to 0-1
         score = max(0.0, min(1.0, (cos_sim + 1) / 2))
-        return MetricResult(metric_name=self.name, score=round(score, 4),
-                          raw_score=cos_sim)
+        return MetricResult(metric_name=self.name, score=round(score, 4), raw_score=cos_sim)
 
 
 # ---------------------------------------------------------------------------
 # Hallucination Detection
 # ---------------------------------------------------------------------------
+
 
 class HallucinationDetector(BaseMetric):
     """Simple hallucination detection via factual overlap analysis."""
@@ -158,12 +168,13 @@ class HallucinationDetector(BaseMetric):
 
     async def compute(self, prediction: str, reference: str, **kwargs: Any) -> MetricResult:
         context = kwargs.get("context", reference)
-        pred_sentences = [s.strip() for s in re.split(r'[.!?]', prediction) if s.strip()]
+        pred_sentences = [s.strip() for s in re.split(r"[.!?]", prediction) if s.strip()]
         context_lower = context.lower()
 
         if not pred_sentences:
             return MetricResult(
-                metric_name=self.name, score=1.0,
+                metric_name=self.name,
+                score=1.0,
                 details={"supported": 0, "total": 0},
             )
 
@@ -183,15 +194,20 @@ class HallucinationDetector(BaseMetric):
 
         score = supported / len(pred_sentences)
         return MetricResult(
-            metric_name=self.name, score=round(score, 4),
-            details={"supported": supported, "total": len(pred_sentences),
-                    "unsupported_claims": unsupported_claims[:5]},
+            metric_name=self.name,
+            score=round(score, 4),
+            details={
+                "supported": supported,
+                "total": len(pred_sentences),
+                "unsupported_claims": unsupported_claims[:5],
+            },
         )
 
 
 # ---------------------------------------------------------------------------
 # Agent-Specific Metrics
 # ---------------------------------------------------------------------------
+
 
 class ToolSelectionAccuracy(BaseMetric):
     """Evaluate if the agent selected the correct tools."""
@@ -205,8 +221,9 @@ class ToolSelectionAccuracy(BaseMetric):
         actual_tools: list[str] = kwargs.get("actual_tools", [])
 
         if not expected_tools:
-            return MetricResult(metric_name=self.name, score=1.0,
-                              details={"note": "No expected tools specified"})
+            return MetricResult(
+                metric_name=self.name, score=1.0, details={"note": "No expected tools specified"}
+            )
 
         expected_set = set(expected_tools)
         actual_set = set(actual_tools)
@@ -220,9 +237,14 @@ class ToolSelectionAccuracy(BaseMetric):
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
         return MetricResult(
-            metric_name=self.name, score=round(f1, 4),
-            details={"precision": round(precision, 4), "recall": round(recall, 4),
-                    "expected": expected_tools, "actual": actual_tools},
+            metric_name=self.name,
+            score=round(f1, 4),
+            details={
+                "precision": round(precision, 4),
+                "recall": round(recall, 4),
+                "expected": expected_tools,
+                "actual": actual_tools,
+            },
         )
 
 
@@ -236,8 +258,9 @@ class ReasoningConsistencyMetric(BaseMetric):
     async def compute(self, prediction: str, reference: str, **kwargs: Any) -> MetricResult:
         steps: list[dict[str, Any]] = kwargs.get("steps", [])
         if not steps:
-            return MetricResult(metric_name=self.name, score=0.5,
-                              details={"note": "No steps provided"})
+            return MetricResult(
+                metric_name=self.name, score=0.5, details={"note": "No steps provided"}
+            )
 
         # Heuristics for reasoning quality
         scores = []
@@ -255,9 +278,13 @@ class ReasoningConsistencyMetric(BaseMetric):
 
         avg_score = sum(scores) / len(scores)
         return MetricResult(
-            metric_name=self.name, score=round(avg_score, 4),
-            details={"think_steps": len(think_steps), "error_steps": len(error_steps),
-                    "has_conclusion": bool(respond_steps)},
+            metric_name=self.name,
+            score=round(avg_score, 4),
+            details={
+                "think_steps": len(think_steps),
+                "error_steps": len(error_steps),
+                "has_conclusion": bool(respond_steps),
+            },
         )
 
 
@@ -278,7 +305,8 @@ class StepEfficiencyMetric(BaseMetric):
         # Optimal is 1-3 steps, efficiency degrades linearly
         efficiency = max(0.0, 1.0 - (total_steps - 1) / max_steps)
         return MetricResult(
-            metric_name=self.name, score=round(efficiency, 4),
+            metric_name=self.name,
+            score=round(efficiency, 4),
             details={"total_steps": total_steps, "max_steps": max_steps},
         )
 
@@ -286,6 +314,7 @@ class StepEfficiencyMetric(BaseMetric):
 # ---------------------------------------------------------------------------
 # Metric Registry
 # ---------------------------------------------------------------------------
+
 
 def get_default_metrics() -> list[BaseMetric]:
     """Return all default metrics."""

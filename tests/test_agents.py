@@ -49,17 +49,21 @@ class TestAgentTrace:
 
     def test_trace_with_steps(self):
         trace = AgentTrace(task="test")
-        trace.steps.append(AgentStep(
-            step_number=1,
-            step_type=StepType.THINK,
-            content="Analyzing the task",
-            latency_ms=100.0,
-        ))
-        trace.steps.append(AgentStep(
-            step_number=2,
-            step_type=StepType.RESPOND,
-            content="Final answer",
-        ))
+        trace.steps.append(
+            AgentStep(
+                step_number=1,
+                step_type=StepType.THINK,
+                content="Analyzing the task",
+                latency_ms=100.0,
+            )
+        )
+        trace.steps.append(
+            AgentStep(
+                step_number=2,
+                step_type=StepType.RESPOND,
+                content="Final answer",
+            )
+        )
         trace.total_steps = 2
         trace.success = True
         assert trace.total_steps == 2

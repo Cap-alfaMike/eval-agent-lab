@@ -51,9 +51,7 @@ class Pipeline:
         self.mode = mode
         self.rubric = rubric or RubricConfig.balanced()
         self.cost_tracker = CostTracker()
-        self.trace_logger = TraceLogger(
-            output_dir=config.pipeline.output_dir / "traces"
-        )
+        self.trace_logger = TraceLogger(output_dir=config.pipeline.output_dir / "traces")
 
         # Initialize LLM
         if llm:
@@ -78,9 +76,11 @@ class Pipeline:
         """Create LLM provider based on config."""
         if self.config.llm.provider == LLMProviderType.OPENAI:
             from eval_agent_lab.llm.openai_provider import OpenAIProvider
+
             return OpenAIProvider(self.config.llm, self.config.cache)
         elif self.config.llm.provider == LLMProviderType.HUGGINGFACE:
             from eval_agent_lab.llm.huggingface_provider import HuggingFaceProvider
+
             return HuggingFaceProvider(self.config.llm, self.config.cache)
         else:
             raise ValueError(f"Unknown provider: {self.config.llm.provider}")
@@ -91,10 +91,7 @@ class Pipeline:
         out_dir = Path(output_dir) if output_dir else self.config.pipeline.output_dir
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        header = (
-            f"\n[bold cyan]== EvalAgentLab Pipeline ==[/bold cyan]"
-            f" [dim](run: {run_id})[/dim]"
-        )
+        header = f"\n[bold cyan]== EvalAgentLab Pipeline ==[/bold cyan] [dim](run: {run_id})[/dim]"
         console.print(header)
         console.print(f"   Mode: [yellow]{self.mode}[/yellow]")
         console.print(f"   Model: [yellow]{self.config.llm.model}[/yellow]")
@@ -134,26 +131,30 @@ class Pipeline:
                         output = await self._run_llm(item)
                         trace = None
 
-                    results.append({
-                        "id": item.id,
-                        "input": item.input,
-                        "expected_output": item.expected_output,
-                        "actual_output": output,
-                        "expected_tools": item.expected_tools,
-                        "context": item.context,
-                        "trace": trace,
-                    })
+                    results.append(
+                        {
+                            "id": item.id,
+                            "input": item.input,
+                            "expected_output": item.expected_output,
+                            "actual_output": output,
+                            "expected_tools": item.expected_tools,
+                            "context": item.context,
+                            "trace": trace,
+                        }
+                    )
                 except Exception as exc:
                     logger.error("item_failed", item_id=item.id, error=str(exc))
-                    results.append({
-                        "id": item.id,
-                        "input": item.input,
-                        "expected_output": item.expected_output,
-                        "actual_output": f"ERROR: {exc}",
-                        "expected_tools": item.expected_tools,
-                        "context": item.context,
-                        "trace": None,
-                    })
+                    results.append(
+                        {
+                            "id": item.id,
+                            "input": item.input,
+                            "expected_output": item.expected_output,
+                            "actual_output": f"ERROR: {exc}",
+                            "expected_tools": item.expected_tools,
+                            "context": item.context,
+                            "trace": None,
+                        }
+                    )
 
                 progress.advance(task)
 
@@ -258,8 +259,9 @@ class Pipeline:
 
         # Metrics table
         if report.aggregate_metrics:
-            metrics_table = Table(title="\nAggregate Metrics", show_header=True,
-                                header_style="bold magenta")
+            metrics_table = Table(
+                title="\nAggregate Metrics", show_header=True, header_style="bold magenta"
+            )
             metrics_table.add_column("Metric", style="cyan")
             metrics_table.add_column("Score", style="green")
 
@@ -269,8 +271,9 @@ class Pipeline:
             console.print(metrics_table)
 
         # Per-item results
-        items_table = Table(title="\nPer-Item Results", show_header=True,
-                          header_style="bold magenta")
+        items_table = Table(
+            title="\nPer-Item Results", show_header=True, header_style="bold magenta"
+        )
         items_table.add_column("ID", style="cyan", width=15)
         items_table.add_column("Composite", style="green", width=10)
         items_table.add_column("Status", width=8)

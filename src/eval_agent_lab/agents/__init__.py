@@ -26,6 +26,7 @@ class StepType(str, Enum):
 
 class AgentStep(BaseModel):
     """A single step in the agent's execution trace."""
+
     step_number: int
     step_type: StepType
     content: str = ""
@@ -39,6 +40,7 @@ class AgentStep(BaseModel):
 
 class AgentTrace(BaseModel):
     """Complete execution trace for an agent run."""
+
     trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     task: str = ""
     steps: list[AgentStep] = Field(default_factory=list)
@@ -61,7 +63,7 @@ class ShortTermMemory:
     def add(self, key: str, value: Any) -> None:
         self._entries.append({"key": key, "value": value, "ts": time.time()})
         if len(self._entries) > self._max:
-            self._entries = self._entries[-self._max:]
+            self._entries = self._entries[-self._max :]
 
     def search(self, key: str) -> list[Any]:
         return [e["value"] for e in self._entries if e["key"] == key]
@@ -82,8 +84,9 @@ class ShortTermMemory:
 class BaseAgent(abc.ABC):
     """Abstract base class for all agents."""
 
-    def __init__(self, llm: BaseLLMProvider, tools: ToolRegistry,
-                 max_steps: int = 10, name: str = "Agent"):
+    def __init__(
+        self, llm: BaseLLMProvider, tools: ToolRegistry, max_steps: int = 10, name: str = "Agent"
+    ):
         self.llm = llm
         self.tools = tools
         self.max_steps = max_steps
@@ -103,8 +106,13 @@ class ReActAgent(BaseAgent):
     multi-step reasoning, and short-term memory.
     """
 
-    def __init__(self, llm: BaseLLMProvider, tools: ToolRegistry,
-                 max_steps: int = 10, name: str = "ReActAgent"):
+    def __init__(
+        self,
+        llm: BaseLLMProvider,
+        tools: ToolRegistry,
+        max_steps: int = 10,
+        name: str = "ReActAgent",
+    ):
         super().__init__(llm, tools, max_steps, name)
 
     async def run(self, task: str, context: str | None = None) -> AgentTrace:
@@ -114,9 +122,7 @@ class ReActAgent(BaseAgent):
 
         # Build system prompt with tool definitions
         tool_defs = self.tools.list_tools()
-        tool_desc = "\n".join(
-            f"- {t.name}: {t.description}" for t in tool_defs
-        )
+        tool_desc = "\n".join(f"- {t.name}: {t.description}" for t in tool_defs)
         system_msg = (
             "You are an AI assistant. Use the think→act→observe loop.\n"
             "Available tools:\n" + tool_desc + "\n\n"
@@ -167,11 +173,13 @@ class ReActAgent(BaseAgent):
                     # Agent decided to give final answer
                     trace.final_answer = action["answer"]
                     trace.success = True
-                    trace.steps.append(AgentStep(
-                        step_number=step_num,
-                        step_type=StepType.RESPOND,
-                        content=action["answer"],
-                    ))
+                    trace.steps.append(
+                        AgentStep(
+                            step_number=step_num,
+                            step_type=StepType.RESPOND,
+                            content=action["answer"],
+                        )
+                    )
                     break
 
                 if "tool" in action:
@@ -203,12 +211,14 @@ class ReActAgent(BaseAgent):
                     messages.append(LLMMessage(role="assistant", content=response.content))
                     messages.append(LLMMessage(role="user", content=f"Observation: {obs_content}"))
 
-                    trace.steps.append(AgentStep(
-                        step_number=step_num,
-                        step_type=StepType.OBSERVE,
-                        content=obs_content,
-                        tool_name=tool_name,
-                    ))
+                    trace.steps.append(
+                        AgentStep(
+                            step_number=step_num,
+                            step_type=StepType.OBSERVE,
+                            content=obs_content,
+                            tool_name=tool_name,
+                        )
+                    )
 
                     # Store in memory
                     self.memory.add(f"tool_result:{tool_name}", obs_content[:500])
@@ -218,18 +228,18 @@ class ReActAgent(BaseAgent):
 
         except Exception as exc:
             trace.error = f"{type(exc).__name__}: {exc}"
-            trace.steps.append(AgentStep(
-                step_number=step_num,
-                step_type=StepType.ERROR,
-                content=str(exc),
-            ))
+            trace.steps.append(
+                AgentStep(
+                    step_number=step_num,
+                    step_type=StepType.ERROR,
+                    content=str(exc),
+                )
+            )
 
         # Finalize trace
         trace.total_steps = len(trace.steps)
         trace.total_latency_ms = sum(s.latency_ms for s in trace.steps)
-        trace.total_tokens = sum(
-            sum(s.token_usage.values()) for s in trace.steps
-        )
+        trace.total_tokens = sum(sum(s.token_usage.values()) for s in trace.steps)
         return trace
 
     @staticmethod
@@ -252,7 +262,7 @@ class ReActAgent(BaseAgent):
                     depth -= 1
                 if depth == 0:
                     try:
-                        parsed: dict[str, Any] = json.loads(content[start:i + 1])
+                        parsed: dict[str, Any] = json.loads(content[start : i + 1])
                         return parsed
                     except json.JSONDecodeError:
                         continue

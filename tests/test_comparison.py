@@ -10,8 +10,9 @@ from eval_agent_lab.evals.comparison import (
 )
 
 
-def _make_report(report_id: str, model: str, metrics: dict, items: int = 10,
-                 success: int = 8) -> dict:
+def _make_report(
+    report_id: str, model: str, metrics: dict, items: int = 10, success: int = 8
+) -> dict:
     """Helper to build a minimal report dict."""
     return {
         "report_id": report_id,
@@ -27,14 +28,22 @@ def _make_report(report_id: str, model: str, metrics: dict, items: int = 10,
 @pytest.mark.unit
 class TestCompareRuns:
     def test_basic_comparison(self, tmp_path):
-        report_a = _make_report("run_a", "gpt-4o-mini", {
-            "avg_exact_match": 0.5,
-            "avg_composite": 0.72,
-        })
-        report_b = _make_report("run_b", "gpt-4o", {
-            "avg_exact_match": 0.6,
-            "avg_composite": 0.81,
-        })
+        report_a = _make_report(
+            "run_a",
+            "gpt-4o-mini",
+            {
+                "avg_exact_match": 0.5,
+                "avg_composite": 0.72,
+            },
+        )
+        report_b = _make_report(
+            "run_b",
+            "gpt-4o",
+            {
+                "avg_exact_match": 0.6,
+                "avg_composite": 0.81,
+            },
+        )
         path_a = tmp_path / "a.json"
         path_b = tmp_path / "b.json"
         path_a.write_text(json.dumps(report_a), encoding="utf-8")

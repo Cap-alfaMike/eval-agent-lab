@@ -33,7 +33,7 @@ size_categories:
 
 # {dataset.name}
 
-{dataset.description or 'An evaluation dataset created with EvalAgentLab.'}
+{dataset.description or "An evaluation dataset created with EvalAgentLab."}
 
 ## Dataset Details
 
@@ -42,8 +42,8 @@ size_categories:
 | **Name** | {dataset.name} |
 | **Version** | {dataset.version} |
 | **Items** | {dataset.size} |
-| **Categories** | {', '.join(categories)} |
-| **Difficulties** | {', '.join(difficulties)} |
+| **Categories** | {", ".join(categories)} |
+| **Difficulties** | {", ".join(difficulties)} |
 | **Source** | [EvalAgentLab](https://github.com/Cap-alfaMike/eval-agent-lab) |
 
 ## Schema

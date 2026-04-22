@@ -21,6 +21,7 @@ class OpenAIProvider(BaseLLMProvider):
         if self._client is None:
             try:
                 from openai import AsyncOpenAI
+
                 kwargs: dict[str, Any] = {
                     "api_key": self.config.get_api_key(),
                     "timeout": self.config.timeout,
@@ -46,10 +47,7 @@ class OpenAIProvider(BaseLLMProvider):
                     "role": m.role,
                     "content": m.content,
                     **({"name": m.name} if m.name else {}),
-                    **(
-                        {"tool_call_id": m.tool_call_id}
-                        if m.tool_call_id else {}
-                    ),
+                    **({"tool_call_id": m.tool_call_id} if m.tool_call_id else {}),
                 }
                 for m in messages
             ],
@@ -61,9 +59,9 @@ class OpenAIProvider(BaseLLMProvider):
             request_kwargs["tool_choice"] = "auto"
         return request_kwargs
 
-    async def _call(self, messages: list[LLMMessage],
-                    tools: list[dict[str, Any]] | None = None,
-                    **kwargs: Any) -> LLMResponse:
+    async def _call(
+        self, messages: list[LLMMessage], tools: list[dict[str, Any]] | None = None, **kwargs: Any
+    ) -> LLMResponse:
         client = self._get_client()
         request_kwargs = self._build_request_kwargs(messages, tools)
 
@@ -79,19 +77,22 @@ class OpenAIProvider(BaseLLMProvider):
         tool_calls = []
         if choice.message.tool_calls:
             for tc in choice.message.tool_calls:
-                tool_calls.append({
-                    "id": tc.id,
-                    "type": "function",
-                    "function": {"name": tc.function.name,
-                                "arguments": tc.function.arguments},
-                })
+                tool_calls.append(
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                    }
+                )
 
         return LLMResponse(
             content=choice.message.content or "",
             tool_calls=tool_calls,
             model=response.model,
-            usage={"prompt_tokens": response.usage.prompt_tokens,
-                   "completion_tokens": response.usage.completion_tokens},
+            usage={
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+            },
             finish_reason=choice.finish_reason or "",
         )
 
@@ -142,4 +143,3 @@ class OpenAIProvider(BaseLLMProvider):
         """Public streaming interface — delegates to _stream."""
         async for chunk in self._stream(messages, tools, **kwargs):
             yield chunk
-

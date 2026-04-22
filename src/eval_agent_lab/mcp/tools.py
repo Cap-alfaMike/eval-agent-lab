@@ -24,8 +24,7 @@ class SearchTool(BaseTool):
             "python": "Python is a high-level programming language created by Guido van Rossum.",
             "machine learning": "Machine learning enables systems to learn from data.",
             "transformer": (
-                "The Transformer architecture was introduced in "
-                "'Attention Is All You Need'."
+                "The Transformer architecture was introduced in 'Attention Is All You Need'."
             ),
             "mcp": "The Model Context Protocol is an open standard for AI tool interoperability.",
             "evaluation": "LLM evaluation includes accuracy, reasoning, and safety metrics.",
@@ -39,8 +38,13 @@ class SearchTool(BaseTool):
             description="Search for information on a given topic.",
             parameters=[
                 ToolParameter(name="query", type=ParameterType.STRING, description="Search query"),
-                ToolParameter(name="max_results", type=ParameterType.INTEGER,
-                            description="Max results", required=False, default=3),
+                ToolParameter(
+                    name="max_results",
+                    type=ParameterType.INTEGER,
+                    description="Max results",
+                    required=False,
+                    default=3,
+                ),
             ],
             returns="List of search results",
             category="information_retrieval",
@@ -56,8 +60,13 @@ class SearchTool(BaseTool):
             content_words = set(content.lower().split())
             score = len(query_words & topic_words) * 3.0 + len(query_words & content_words) * 0.5
             if score > 0:
-                results.append({"topic": topic, "content": content,
-                              "relevance_score": round(min(score / 5.0, 1.0), 3)})
+                results.append(
+                    {
+                        "topic": topic,
+                        "content": content,
+                        "relevance_score": round(min(score / 5.0, 1.0), 3),
+                    }
+                )
         results.sort(key=lambda x: float(x.get("relevance_score", 0)), reverse=True)
         return results[:max_results]
 
@@ -66,10 +75,22 @@ class CalculatorTool(BaseTool):
     """Safe mathematical expression evaluator."""
 
     SAFE_FUNCTIONS = {
-        "abs": abs, "round": round, "min": min, "max": max, "sum": sum,
-        "pow": pow, "sqrt": math.sqrt, "log": math.log, "log10": math.log10,
-        "sin": math.sin, "cos": math.cos, "tan": math.tan,
-        "pi": math.pi, "e": math.e, "ceil": math.ceil, "floor": math.floor,
+        "abs": abs,
+        "round": round,
+        "min": min,
+        "max": max,
+        "sum": sum,
+        "pow": pow,
+        "sqrt": math.sqrt,
+        "log": math.log,
+        "log10": math.log10,
+        "sin": math.sin,
+        "cos": math.cos,
+        "tan": math.tan,
+        "pi": math.pi,
+        "e": math.e,
+        "ceil": math.ceil,
+        "floor": math.floor,
     }
 
     def definition(self) -> ToolDefinition:
@@ -77,8 +98,11 @@ class CalculatorTool(BaseTool):
             name="calculator",
             description="Evaluate a mathematical expression safely.",
             parameters=[
-                ToolParameter(name="expression", type=ParameterType.STRING,
-                            description="Math expression to evaluate"),
+                ToolParameter(
+                    name="expression",
+                    type=ParameterType.STRING,
+                    description="Math expression to evaluate",
+                ),
             ],
             returns="Numeric result",
             category="computation",
@@ -90,8 +114,10 @@ class CalculatorTool(BaseTool):
             raise ValueError(f"Unsafe expression: {expression}")
         try:
             result = eval(expression, {"__builtins__": {}}, self.SAFE_FUNCTIONS)
-            return {"result": round(result, 10) if isinstance(result, float) else result,
-                    "expression": expression}
+            return {
+                "result": round(result, 10) if isinstance(result, float) else result,
+                "expression": expression,
+            }
         except Exception as exc:
             raise ValueError(f"Failed to evaluate '{expression}': {exc}") from exc
 
@@ -103,29 +129,30 @@ class VectorRetrievalTool(BaseTool):
         self._dim = embedding_dim
         self._documents: list[dict[str, Any]] = documents or [
             {
-                "id": "doc_1", "title": "Neural Networks",
+                "id": "doc_1",
+                "title": "Neural Networks",
                 "content": "Neural networks are computing systems "
                 "inspired by biological neural networks.",
             },
             {
-                "id": "doc_2", "title": "Transformer Architecture",
-                "content": "The transformer relies on "
-                "self-attention mechanisms.",
+                "id": "doc_2",
+                "title": "Transformer Architecture",
+                "content": "The transformer relies on self-attention mechanisms.",
             },
             {
-                "id": "doc_3", "title": "RLHF",
-                "content": "RLHF trains language models using "
-                "human preferences.",
+                "id": "doc_3",
+                "title": "RLHF",
+                "content": "RLHF trains language models using human preferences.",
             },
             {
-                "id": "doc_4", "title": "Prompt Engineering",
-                "content": "Effective prompts include clear "
-                "instructions and context.",
+                "id": "doc_4",
+                "title": "Prompt Engineering",
+                "content": "Effective prompts include clear instructions and context.",
             },
             {
-                "id": "doc_5", "title": "LLM Evaluation",
-                "content": "Evaluating LLMs requires "
-                "multi-dimensional assessment.",
+                "id": "doc_5",
+                "title": "LLM Evaluation",
+                "content": "Evaluating LLMs requires multi-dimensional assessment.",
             },
         ]
         self._embeddings: np.ndarray | None = None
@@ -139,8 +166,7 @@ class VectorRetrievalTool(BaseTool):
 
     def _build_index(self) -> None:
         embeddings = [
-            self._text_to_embedding(f"{d['title']} {d['content']}")
-            for d in self._documents
+            self._text_to_embedding(f"{d['title']} {d['content']}") for d in self._documents
         ]
         self._embeddings = np.stack(embeddings) if embeddings else np.empty((0, self._dim))
 
@@ -151,9 +177,11 @@ class VectorRetrievalTool(BaseTool):
             parameters=[
                 ToolParameter(name="query", type=ParameterType.STRING, description="Search query"),
                 ToolParameter(
-                    name="top_k", type=ParameterType.INTEGER,
+                    name="top_k",
+                    type=ParameterType.INTEGER,
                     description="Number of results",
-                    required=False, default=3,
+                    required=False,
+                    default=3,
                 ),
             ],
             returns="List of documents with similarity scores",

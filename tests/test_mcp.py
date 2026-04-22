@@ -1,6 +1,5 @@
 """Unit tests for the MCP tool system."""
 
-
 import pytest
 
 from eval_agent_lab.exceptions import ToolNotFoundError
@@ -19,6 +18,7 @@ from eval_agent_lab.mcp.tools import (
 
 # --- Tool Definition Tests ---
 
+
 @pytest.mark.unit
 class TestToolDefinition:
     def test_openai_schema_conversion(self):
@@ -27,8 +27,13 @@ class TestToolDefinition:
             description="A test tool",
             parameters=[
                 ToolParameter(name="query", type=ParameterType.STRING, description="Search query"),
-                ToolParameter(name="count", type=ParameterType.INTEGER, description="Count",
-                            required=False, default=5),
+                ToolParameter(
+                    name="count",
+                    type=ParameterType.INTEGER,
+                    description="Count",
+                    required=False,
+                    default=5,
+                ),
             ],
         )
         schema = defn.to_openai_schema()
@@ -40,6 +45,7 @@ class TestToolDefinition:
 
 
 # --- Tool Registry Tests ---
+
 
 @pytest.mark.unit
 class TestToolRegistry:
@@ -86,6 +92,7 @@ class TestToolRegistry:
 
 # --- Search Tool Tests ---
 
+
 @pytest.mark.unit
 class TestSearchTool:
     @pytest.fixture
@@ -111,6 +118,7 @@ class TestSearchTool:
 
 
 # --- Calculator Tool Tests ---
+
 
 @pytest.mark.unit
 class TestCalculatorTool:
@@ -144,6 +152,7 @@ class TestCalculatorTool:
 
 # --- Vector Retrieval Tool Tests ---
 
+
 @pytest.mark.unit
 class TestVectorRetrievalTool:
     @pytest.fixture
@@ -165,6 +174,7 @@ class TestVectorRetrievalTool:
 
 
 # --- Tool Invocation via Registry ---
+
 
 @pytest.mark.unit
 class TestToolInvocation:

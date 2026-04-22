@@ -16,6 +16,7 @@ from eval_agent_lab.config import CacheConfig, LLMConfig
 
 class LLMMessage(BaseModel):
     """A single message in a conversation."""
+
     role: str  # system, user, assistant, tool
     content: str
     name: str | None = None
@@ -25,6 +26,7 @@ class LLMMessage(BaseModel):
 
 class LLMResponse(BaseModel):
     """Structured response from an LLM provider."""
+
     content: str = ""
     tool_calls: list[dict[str, Any]] = Field(default_factory=list)
     model: str = ""
@@ -38,6 +40,7 @@ class LLMResponse(BaseModel):
 
 class StreamChunk(BaseModel):
     """A single chunk from a streaming LLM response."""
+
     content: str = ""
     finish_reason: str | None = None
     model: str = ""
@@ -45,6 +48,7 @@ class StreamChunk(BaseModel):
 
 class LLMUsageStats(BaseModel):
     """Aggregated usage statistics for cost tracking."""
+
     total_prompt_tokens: int = 0
     total_completion_tokens: int = 0
     total_requests: int = 0
@@ -55,10 +59,13 @@ class LLMUsageStats(BaseModel):
     def total_tokens(self) -> int:
         return self.total_prompt_tokens + self.total_completion_tokens
 
-    def estimated_cost(self, prompt_cost_per_1k: float = 0.00015,
-                       completion_cost_per_1k: float = 0.0006) -> float:
-        return (self.total_prompt_tokens / 1000 * prompt_cost_per_1k +
-                self.total_completion_tokens / 1000 * completion_cost_per_1k)
+    def estimated_cost(
+        self, prompt_cost_per_1k: float = 0.00015, completion_cost_per_1k: float = 0.0006
+    ) -> float:
+        return (
+            self.total_prompt_tokens / 1000 * prompt_cost_per_1k
+            + self.total_completion_tokens / 1000 * completion_cost_per_1k
+        )
 
 
 class BaseLLMProvider(abc.ABC):
@@ -71,6 +78,7 @@ class BaseLLMProvider(abc.ABC):
         if cache_config and cache_config.enabled:
             try:
                 import diskcache
+
                 cache_config.directory.mkdir(parents=True, exist_ok=True)
                 self._cache = diskcache.Cache(str(cache_config.directory))
             except ImportError:
@@ -82,14 +90,13 @@ class BaseLLMProvider(abc.ABC):
         return hashlib.sha256(data.encode()).hexdigest()
 
     @abc.abstractmethod
-    async def _call(self, messages: list[LLMMessage],
-                    tools: list[dict[str, Any]] | None = None,
-                    **kwargs: Any) -> LLMResponse:
-        ...
+    async def _call(
+        self, messages: list[LLMMessage], tools: list[dict[str, Any]] | None = None, **kwargs: Any
+    ) -> LLMResponse: ...
 
-    async def generate(self, messages: list[LLMMessage],
-                       tools: list[dict[str, Any]] | None = None,
-                       **kwargs: Any) -> LLMResponse:
+    async def generate(
+        self, messages: list[LLMMessage], tools: list[dict[str, Any]] | None = None, **kwargs: Any
+    ) -> LLMResponse:
         """Generate a response with caching and stats tracking.
 
         When ``config.stream`` is True this method transparently collects
@@ -179,11 +186,11 @@ class BaseLLMProvider(abc.ABC):
             model=response.model,
         )
 
-    async def batch_generate(self, message_batches: list[list[LLMMessage]],
-                             **kwargs: Any) -> list[LLMResponse]:
+    async def batch_generate(
+        self, message_batches: list[list[LLMMessage]], **kwargs: Any
+    ) -> list[LLMResponse]:
         """Process multiple requests (sequential; override for parallel)."""
         results = []
         for messages in message_batches:
             results.append(await self.generate(messages, **kwargs))
         return results
-

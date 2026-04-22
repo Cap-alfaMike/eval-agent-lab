@@ -9,6 +9,7 @@ class EvalAgentLabError(Exception):
 
 # --- LLM Errors ---
 
+
 class LLMError(EvalAgentLabError):
     """Base error for LLM-related failures."""
 
@@ -26,6 +27,7 @@ class LLMResponseError(LLMError):
 
 
 # --- Tool Errors ---
+
 
 class ToolError(EvalAgentLabError):
     """Base error for tool-related failures."""
@@ -45,6 +47,7 @@ class ToolValidationError(ToolError):
 
 # --- Agent Errors ---
 
+
 class AgentError(EvalAgentLabError):
     """Base error for agent-related failures."""
 
@@ -59,6 +62,7 @@ class AgentToolSelectionError(AgentError):
 
 # --- Evaluation Errors ---
 
+
 class EvaluationError(EvalAgentLabError):
     """Base error for evaluation-related failures."""
 
@@ -72,6 +76,7 @@ class MetricComputationError(EvaluationError):
 
 
 # --- Pipeline Errors ---
+
 
 class PipelineError(EvalAgentLabError):
     """Base error for pipeline execution failures."""

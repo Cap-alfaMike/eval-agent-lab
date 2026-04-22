@@ -1,7 +1,6 @@
 """Test configuration and shared fixtures."""
 
 
-
 def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line("markers", "unit: Unit tests (no external deps)")

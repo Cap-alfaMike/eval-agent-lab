@@ -23,6 +23,7 @@ class ComparisonError(EvaluationError):
 
 class MetricDelta(BaseModel):
     """Delta for a single metric between two runs."""
+
     metric: str
     run_a: float
     run_b: float
@@ -33,6 +34,7 @@ class MetricDelta(BaseModel):
 
 class RunComparison(BaseModel):
     """Full comparison result between two evaluation runs."""
+
     run_a_id: str = ""
     run_b_id: str = ""
     run_a_model: str = ""
@@ -102,14 +104,16 @@ def compare_runs(
         pct = round(d / val_a * 100, 2) if val_a != 0 else None
         direction = _classify_delta(d, threshold)
 
-        deltas.append(MetricDelta(
-            metric=key,
-            run_a=round(val_a, 4),
-            run_b=round(val_b, 4),
-            delta=round(d, 4),
-            pct_change=pct,
-            direction=direction,
-        ))
+        deltas.append(
+            MetricDelta(
+                metric=key,
+                run_a=round(val_a, 4),
+                run_b=round(val_b, 4),
+                delta=round(d, 4),
+                pct_change=pct,
+                direction=direction,
+            )
+        )
 
         if direction == "improved":
             improved += 1
@@ -126,14 +130,17 @@ def compare_runs(
     sr_delta = round(success_b - success_a, 4)
     sr_dir = _classify_delta(sr_delta, threshold)
 
-    deltas.insert(0, MetricDelta(
-        metric="success_rate",
-        run_a=round(success_a, 4),
-        run_b=round(success_b, 4),
-        delta=sr_delta,
-        pct_change=round(sr_delta / success_a * 100, 2) if success_a else None,
-        direction=sr_dir,
-    ))
+    deltas.insert(
+        0,
+        MetricDelta(
+            metric="success_rate",
+            run_a=round(success_a, 4),
+            run_b=round(success_b, 4),
+            delta=sr_delta,
+            pct_change=round(sr_delta / success_a * 100, 2) if success_a else None,
+            direction=sr_dir,
+        ),
+    )
     if sr_dir == "improved":
         improved += 1
     elif sr_dir == "regressed":

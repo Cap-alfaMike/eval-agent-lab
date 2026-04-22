@@ -52,11 +52,14 @@ class CostTracker:
     def __init__(self) -> None:
         self._records: list[dict[str, Any]] = []
 
-    def record(self, model: str, prompt_tokens: int, completion_tokens: int,
-               latency_ms: float) -> dict[str, Any]:
+    def record(
+        self, model: str, prompt_tokens: int, completion_tokens: int, latency_ms: float
+    ) -> dict[str, Any]:
         pricing = self.PRICING.get(model, {"prompt": 0.001, "completion": 0.002})
-        cost = (prompt_tokens / 1000 * pricing["prompt"] +
-                completion_tokens / 1000 * pricing["completion"])
+        cost = (
+            prompt_tokens / 1000 * pricing["prompt"]
+            + completion_tokens / 1000 * pricing["completion"]
+        )
 
         record = {
             "model": model,
@@ -119,8 +122,9 @@ class TraceLogger:
             with open(trace_path, "w", encoding="utf-8") as f:
                 json.dump(trace.model_dump(), f, indent=2, default=str)
 
-    def log_step(self, trace_id: str, step_number: int, step_type: str,
-                 content: str, **kwargs: Any) -> None:
+    def log_step(
+        self, trace_id: str, step_number: int, step_type: str, content: str, **kwargs: Any
+    ) -> None:
         """Log an individual agent step."""
         self._logger.debug(
             "agent_step",

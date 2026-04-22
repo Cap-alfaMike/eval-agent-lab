@@ -9,8 +9,9 @@ from eval_agent_lab.observability import CostTracker
 class TestCostTracker:
     def test_record_cost(self):
         tracker = CostTracker()
-        record = tracker.record("gpt-4o-mini", prompt_tokens=1000, completion_tokens=500,
-                               latency_ms=200.0)
+        record = tracker.record(
+            "gpt-4o-mini", prompt_tokens=1000, completion_tokens=500, latency_ms=200.0
+        )
         assert record["total_tokens"] == 1500
         assert record["estimated_cost_usd"] > 0
 

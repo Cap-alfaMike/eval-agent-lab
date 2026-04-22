@@ -25,11 +25,15 @@ def run_pipeline(
     mode: str = typer.Option("agent", "--mode", "-m", help="Execution mode: 'agent' or 'llm_only'"),
     model: str = typer.Option("gpt-4o-mini", "--model", help="LLM model to use"),
     provider: str = typer.Option(
-        "openai", "--provider", "-p",
+        "openai",
+        "--provider",
+        "-p",
         help="LLM provider: 'openai' or 'huggingface'",
     ),
     output_dir: str = typer.Option(
-        "outputs", "--output", "-o",
+        "outputs",
+        "--output",
+        "-o",
         help="Output directory for reports",
     ),
     max_concurrent: int = typer.Option(5, "--concurrent", "-c", help="Max concurrent evaluations"),
@@ -57,6 +61,7 @@ def run_pipeline(
     rubric_config = None
     if rubric:
         from eval_agent_lab.evals.rubric import RubricConfig
+
         rubric_config = RubricConfig.from_json(rubric)
         console.print(f"  Rubric: [yellow]{rubric_config.name}[/yellow]")
 
@@ -144,6 +149,7 @@ def compare_runs_cmd(
 
         if output:
             import json
+
             out_path = Path(output)
             out_path.parent.mkdir(parents=True, exist_ok=True)
             with open(out_path, "w", encoding="utf-8") as f:
@@ -212,6 +218,7 @@ def run_demo() -> None:
             ExactMatchMetric,
             SemanticSimilarityMetric,
         )
+
         prediction = "Python is a programming language created by Guido van Rossum"
         reference = "Python"
 
@@ -228,6 +235,7 @@ def run_demo() -> None:
         # Demo rubric
         console.print("\n[bold]5. Rubric System[/bold]")
         from eval_agent_lab.evals.rubric import RubricConfig
+
         rubric = RubricConfig.accuracy_focused()
         console.print(f"   Rubric: '{rubric.name}' ({len(rubric.metrics)} metrics)")
         console.print(f"   Pass threshold: {rubric.pass_threshold}")
@@ -242,4 +250,3 @@ def run_demo() -> None:
 
 if __name__ == "__main__":
     app()
-
