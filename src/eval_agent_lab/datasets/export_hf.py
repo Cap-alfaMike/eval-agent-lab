@@ -55,7 +55,13 @@ Each item in the dataset contains:
 | `id` | string | Unique identifier |
 | `input` | string | The input query or task |
 | `expected_output` | string | The expected correct answer |
+| `acceptable_outputs` | list[string] | Alternative correct outputs for flexible matching |
 | `expected_tools` | list[string] | Tools the agent should use |
+| `tool_strategy` | string | `must_use`, `optional`, or `forbidden` |
+| `max_steps` | integer | Maximum expected steps for efficient resolution |
+| `penalize_overuse` | boolean | Penalize redundant or excessive tool calls |
+| `expected_contains` | list[string] | Keywords/phrases the output should contain |
+| `expected_reasoning` | list[string] | Expected reasoning steps |
 | `context` | string (optional) | Additional context |
 | `category` | string | Task category |
 | `difficulty` | string | easy, medium, or hard |
@@ -82,7 +88,13 @@ def _dataset_to_jsonl(dataset: Dataset) -> str:
             "id": item.id,
             "input": item.input,
             "expected_output": item.expected_output,
+            "acceptable_outputs": item.acceptable_outputs,
             "expected_tools": item.expected_tools,
+            "tool_strategy": item.tool_strategy,
+            "max_steps": item.max_steps,
+            "penalize_overuse": item.penalize_overuse,
+            "expected_contains": item.expected_contains,
+            "expected_reasoning": item.expected_reasoning,
             "context": item.context or "",
             "category": item.category,
             "difficulty": item.difficulty,

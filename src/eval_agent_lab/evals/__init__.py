@@ -94,6 +94,12 @@ class EvaluationEngine:
         trace: AgentTrace | None = None,
         expected_tools: list[str] | None = None,
         context: str | None = None,
+        # --- New behavioural fields ---
+        acceptable_outputs: list[str] | None = None,
+        tool_strategy: str = "optional",
+        max_steps: int = 10,
+        penalize_overuse: bool = False,
+        expected_contains: list[str] | None = None,
     ) -> EvaluationResult:
         """Evaluate a single prediction against a reference."""
         start = time.perf_counter()
@@ -109,12 +115,20 @@ class EvaluationEngine:
         if trace:
             extra_kwargs["steps"] = [s.model_dump() for s in trace.steps]
             extra_kwargs["total_steps"] = trace.total_steps
-            extra_kwargs["max_steps"] = 10
             extra_kwargs["actual_tools"] = trace.tools_used
         if expected_tools:
             extra_kwargs["expected_tools"] = expected_tools
         if context:
             extra_kwargs["context"] = context
+
+        # Behavioural evaluation fields
+        extra_kwargs["max_steps"] = max_steps
+        extra_kwargs["penalize_overuse"] = penalize_overuse
+        extra_kwargs["tool_strategy"] = tool_strategy
+        if acceptable_outputs:
+            extra_kwargs["acceptable_outputs"] = acceptable_outputs
+        if expected_contains:
+            extra_kwargs["expected_contains"] = expected_contains
 
         # Run all metrics
         for metric in self.metrics:

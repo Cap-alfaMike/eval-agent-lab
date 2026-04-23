@@ -1,18 +1,24 @@
 {
   "name": "core_evaluation_suite",
-  "description": "Core evaluation dataset for testing LLM and agent capabilities across knowledge, reasoning, tool use, and multi-step tasks.",
-  "version": "1.0.0",
+  "description": "Core evaluation dataset for testing LLM and agent capabilities across correctness, skill adherence, and execution efficiency.",
+  "version": "2.0.0",
   "metadata": {
     "author": "EvalAgentLab",
     "created": "2024-01-01",
-    "categories": ["knowledge", "reasoning", "tool_use", "multi_step"]
+    "updated": "2025-01-01",
+    "categories": ["knowledge", "reasoning", "tool_use", "multi_step", "computation", "hallucination"]
   },
   "items": [
     {
       "id": "knowledge_001",
       "input": "What programming language was created by Guido van Rossum?",
       "expected_output": "Python",
+      "acceptable_outputs": ["Python", "The Python programming language"],
       "expected_tools": ["search"],
+      "tool_strategy": "optional",
+      "max_steps": 1,
+      "penalize_overuse": false,
+      "expected_contains": ["Python"],
       "context": "Programming languages history",
       "category": "knowledge",
       "difficulty": "easy"
@@ -21,16 +27,59 @@
       "id": "knowledge_002",
       "input": "What architecture is the foundation of modern LLMs like GPT and Claude?",
       "expected_output": "The Transformer architecture",
+      "acceptable_outputs": ["Transformer", "The Transformer architecture", "Transformer architecture"],
       "expected_tools": ["search"],
+      "tool_strategy": "optional",
+      "max_steps": 1,
+      "penalize_overuse": false,
+      "expected_contains": ["Transformer"],
       "context": "AI and machine learning",
       "category": "knowledge",
+      "difficulty": "easy"
+    },
+    {
+      "id": "knowledge_003",
+      "input": "What is RLHF and what is it used for?",
+      "expected_output": "RLHF (Reinforcement Learning from Human Feedback) is a technique for training language models using human preferences.",
+      "acceptable_outputs": [
+        "RLHF is Reinforcement Learning from Human Feedback",
+        "RLHF stands for Reinforcement Learning from Human Feedback, used to align language models with human preferences"
+      ],
+      "expected_tools": ["vector_retrieval"],
+      "tool_strategy": "optional",
+      "max_steps": 2,
+      "penalize_overuse": false,
+      "expected_contains": ["RLHF", "Reinforcement Learning", "Human Feedback"],
+      "category": "knowledge",
+      "difficulty": "medium"
+    },
+    {
+      "id": "computation_001",
+      "input": "What is 15 * 23 + 7?",
+      "expected_output": "352",
+      "acceptable_outputs": ["352", "The result is 352", "15 * 23 + 7 = 352"],
+      "expected_tools": ["calculator"],
+      "tool_strategy": "must_use",
+      "max_steps": 1,
+      "penalize_overuse": true,
+      "expected_contains": ["352"],
+      "category": "computation",
       "difficulty": "easy"
     },
     {
       "id": "reasoning_001",
       "input": "If a train travels 120 km in 2 hours, what is its average speed in km/h?",
       "expected_output": "60",
+      "acceptable_outputs": ["60", "60 km/h", "The average speed is 60 km/h"],
       "expected_tools": ["calculator"],
+      "tool_strategy": "must_use",
+      "max_steps": 1,
+      "penalize_overuse": true,
+      "expected_contains": ["60"],
+      "expected_reasoning": [
+        "divide distance by time",
+        "compute 120 / 2"
+      ],
       "category": "reasoning",
       "difficulty": "easy"
     },
@@ -38,15 +87,45 @@
       "id": "reasoning_002",
       "input": "Calculate the area of a circle with radius 7. Use pi = 3.14159.",
       "expected_output": "153.938",
+      "acceptable_outputs": ["153.938", "153.94", "approximately 153.94"],
       "expected_tools": ["calculator"],
+      "tool_strategy": "must_use",
+      "max_steps": 1,
+      "penalize_overuse": true,
+      "expected_contains": ["153"],
+      "expected_reasoning": [
+        "apply formula A = pi * r^2",
+        "compute 3.14159 * 49"
+      ],
       "category": "reasoning",
       "difficulty": "medium"
+    },
+    {
+      "id": "reasoning_003",
+      "input": "What is the factorial of 6?",
+      "expected_output": "720",
+      "acceptable_outputs": ["720", "6! = 720", "The factorial of 6 is 720"],
+      "expected_tools": ["calculator"],
+      "tool_strategy": "must_use",
+      "max_steps": 1,
+      "penalize_overuse": true,
+      "expected_contains": ["720"],
+      "category": "reasoning",
+      "difficulty": "easy"
     },
     {
       "id": "tool_use_001",
       "input": "Search for information about the Model Context Protocol and summarize what it is.",
       "expected_output": "The Model Context Protocol (MCP) is an open standard for connecting AI assistants to external data sources and tools.",
+      "acceptable_outputs": [
+        "MCP is an open standard for connecting AI assistants to tools",
+        "The Model Context Protocol enables AI systems to interact with external data and tools"
+      ],
       "expected_tools": ["search"],
+      "tool_strategy": "must_use",
+      "max_steps": 2,
+      "penalize_overuse": false,
+      "expected_contains": ["MCP", "protocol"],
       "category": "tool_use",
       "difficulty": "medium"
     },
@@ -54,7 +133,15 @@
       "id": "tool_use_002",
       "input": "Find documents related to transformer architecture in the knowledge base.",
       "expected_output": "The transformer model relies on self-attention mechanisms.",
+      "acceptable_outputs": [
+        "Transformers use self-attention mechanisms",
+        "The transformer architecture is based on attention mechanisms"
+      ],
       "expected_tools": ["vector_retrieval"],
+      "tool_strategy": "must_use",
+      "max_steps": 2,
+      "penalize_overuse": false,
+      "expected_contains": ["transformer", "attention"],
       "category": "tool_use",
       "difficulty": "medium"
     },
@@ -62,7 +149,19 @@
       "id": "multi_step_001",
       "input": "First, search for what machine learning is. Then calculate 2 raised to the power of 10.",
       "expected_output": "Machine learning enables systems to learn from data. 2^10 = 1024.",
+      "acceptable_outputs": [
+        "Machine learning is a subset of AI. 2^10 = 1024.",
+        "ML lets systems learn from data. 2 to the power of 10 is 1024."
+      ],
       "expected_tools": ["search", "calculator"],
+      "tool_strategy": "must_use",
+      "max_steps": 3,
+      "penalize_overuse": true,
+      "expected_contains": ["machine learning", "1024"],
+      "expected_reasoning": [
+        "search for machine learning definition",
+        "calculate 2^10"
+      ],
       "category": "multi_step",
       "difficulty": "hard"
     },
@@ -70,25 +169,96 @@
       "id": "multi_step_002",
       "input": "Find information about quantum computing, then calculate the square root of 256.",
       "expected_output": "Quantum computing uses superposition and entanglement. sqrt(256) = 16.",
+      "acceptable_outputs": [
+        "Quantum computing leverages quantum mechanics. The square root of 256 is 16.",
+        "Quantum computers use qubits. sqrt(256) = 16."
+      ],
       "expected_tools": ["search", "calculator"],
+      "tool_strategy": "must_use",
+      "max_steps": 3,
+      "penalize_overuse": true,
+      "expected_contains": ["quantum", "16"],
+      "expected_reasoning": [
+        "search for quantum computing",
+        "compute sqrt(256)"
+      ],
       "category": "multi_step",
       "difficulty": "hard"
     },
     {
-      "id": "reasoning_003",
-      "input": "What is the factorial of 6?",
-      "expected_output": "720",
-      "expected_tools": ["calculator"],
-      "category": "reasoning",
-      "difficulty": "easy"
+      "id": "multi_step_003",
+      "input": "Find the population of Brazil and calculate 10% of it.",
+      "expected_output": "approx 21 million",
+      "acceptable_outputs": [
+        "21 million",
+        "around 21 million",
+        "approximately 21.4 million",
+        "about 21 million"
+      ],
+      "expected_tools": ["search", "calculator"],
+      "tool_strategy": "must_use",
+      "max_steps": 2,
+      "penalize_overuse": true,
+      "expected_contains": ["population", "million"],
+      "expected_reasoning": [
+        "retrieve population",
+        "compute percentage"
+      ],
+      "category": "multi_step",
+      "difficulty": "hard"
     },
     {
-      "id": "knowledge_003",
-      "input": "What is RLHF and what is it used for?",
-      "expected_output": "RLHF (Reinforcement Learning from Human Feedback) is a technique for training language models using human preferences.",
-      "expected_tools": ["vector_retrieval"],
-      "category": "knowledge",
+      "id": "hallucination_001",
+      "input": "What is the capital of Atlantis?",
+      "expected_output": "Atlantis is fictional",
+      "acceptable_outputs": [
+        "Atlantis is fictional",
+        "There is no real capital of Atlantis",
+        "Atlantis is a mythological place and does not have a real capital",
+        "Atlantis does not exist"
+      ],
+      "expected_tools": [],
+      "tool_strategy": "forbidden",
+      "max_steps": 1,
+      "penalize_overuse": true,
+      "expected_contains": ["fictional", "myth"],
+      "category": "hallucination",
       "difficulty": "medium"
+    },
+    {
+      "id": "hallucination_002",
+      "input": "Who won the FIFA World Cup in 2087?",
+      "expected_output": "This event has not occurred yet",
+      "acceptable_outputs": [
+        "This event has not occurred yet",
+        "I don't have information about future events",
+        "The 2087 World Cup has not happened yet",
+        "I cannot predict future events"
+      ],
+      "expected_tools": [],
+      "tool_strategy": "forbidden",
+      "max_steps": 1,
+      "penalize_overuse": true,
+      "expected_contains": ["not"],
+      "category": "hallucination",
+      "difficulty": "medium"
+    },
+    {
+      "id": "hallucination_003",
+      "input": "Explain the chemical formula of Unobtainium.",
+      "expected_output": "Unobtainium is a fictional material",
+      "acceptable_outputs": [
+        "Unobtainium is fictional",
+        "There is no real chemical formula for Unobtainium",
+        "Unobtainium is not a real element or material"
+      ],
+      "expected_tools": [],
+      "tool_strategy": "forbidden",
+      "max_steps": 1,
+      "penalize_overuse": true,
+      "expected_contains": ["fictional"],
+      "category": "hallucination",
+      "difficulty": "hard"
     }
   ]
 }

@@ -1,17 +1,23 @@
 {
   "name": "tool_selection_benchmark",
-  "description": "Benchmark dataset focused on evaluating agent tool selection accuracy.",
-  "version": "1.0.0",
+  "description": "Benchmark dataset focused on evaluating agent tool selection accuracy and strategy compliance.",
+  "version": "2.0.0",
   "metadata": {
     "author": "EvalAgentLab",
-    "focus": "tool_selection"
+    "focus": "tool_selection",
+    "updated": "2025-01-01"
   },
   "items": [
     {
       "id": "ts_001",
       "input": "What is 15 * 23 + 7?",
       "expected_output": "352",
+      "acceptable_outputs": ["352", "The result is 352"],
       "expected_tools": ["calculator"],
+      "tool_strategy": "must_use",
+      "max_steps": 1,
+      "penalize_overuse": true,
+      "expected_contains": ["352"],
       "category": "computation",
       "difficulty": "easy"
     },
@@ -19,7 +25,15 @@
       "id": "ts_002",
       "input": "Tell me about climate change and its causes.",
       "expected_output": "Climate change refers to long-term shifts in global temperatures, primarily caused by burning fossil fuels.",
+      "acceptable_outputs": [
+        "Climate change is caused by burning fossil fuels",
+        "Global warming is primarily driven by greenhouse gas emissions from fossil fuels"
+      ],
       "expected_tools": ["search"],
+      "tool_strategy": "must_use",
+      "max_steps": 2,
+      "penalize_overuse": false,
+      "expected_contains": ["climate", "fossil fuels"],
       "category": "search",
       "difficulty": "easy"
     },
@@ -27,7 +41,15 @@
       "id": "ts_003",
       "input": "Find documents about prompt engineering best practices.",
       "expected_output": "Effective prompts include clear instructions, relevant context, and few-shot examples.",
+      "acceptable_outputs": [
+        "Good prompts should be clear and include examples",
+        "Prompt engineering best practices include specificity, context, and examples"
+      ],
       "expected_tools": ["vector_retrieval"],
+      "tool_strategy": "must_use",
+      "max_steps": 2,
+      "penalize_overuse": false,
+      "expected_contains": ["prompt", "instructions"],
       "category": "retrieval",
       "difficulty": "medium"
     },
@@ -35,7 +57,12 @@
       "id": "ts_004",
       "input": "Calculate log base 10 of 1000.",
       "expected_output": "3",
+      "acceptable_outputs": ["3", "3.0", "The log base 10 of 1000 is 3"],
       "expected_tools": ["calculator"],
+      "tool_strategy": "must_use",
+      "max_steps": 1,
+      "penalize_overuse": true,
+      "expected_contains": ["3"],
       "category": "computation",
       "difficulty": "easy"
     },
@@ -43,7 +70,19 @@
       "id": "ts_005",
       "input": "Search for information about LLM evaluation methodologies and retrieve relevant papers.",
       "expected_output": "LLM evaluation requires multi-dimensional assessment including benchmarks and human evaluation.",
+      "acceptable_outputs": [
+        "LLM evaluation involves benchmarks, human evaluation, and automated metrics",
+        "Evaluating LLMs requires a combination of automated benchmarks and human judgment"
+      ],
       "expected_tools": ["search", "vector_retrieval"],
+      "tool_strategy": "must_use",
+      "max_steps": 3,
+      "penalize_overuse": true,
+      "expected_contains": ["evaluation", "benchmark"],
+      "expected_reasoning": [
+        "search for LLM evaluation methodologies",
+        "retrieve relevant papers"
+      ],
       "category": "multi_tool",
       "difficulty": "hard"
     }

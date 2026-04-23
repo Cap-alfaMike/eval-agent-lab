@@ -140,6 +140,12 @@ class Pipeline:
                             "expected_tools": item.expected_tools,
                             "context": item.context,
                             "trace": trace,
+                            # Behavioural fields
+                            "acceptable_outputs": item.acceptable_outputs,
+                            "tool_strategy": item.tool_strategy,
+                            "max_steps": item.max_steps,
+                            "penalize_overuse": item.penalize_overuse,
+                            "expected_contains": item.expected_contains,
                         }
                     )
                 except Exception as exc:
@@ -153,6 +159,11 @@ class Pipeline:
                             "expected_tools": item.expected_tools,
                             "context": item.context,
                             "trace": None,
+                            "acceptable_outputs": item.acceptable_outputs,
+                            "tool_strategy": item.tool_strategy,
+                            "max_steps": item.max_steps,
+                            "penalize_overuse": item.penalize_overuse,
+                            "expected_contains": item.expected_contains,
                         }
                     )
 
@@ -177,6 +188,11 @@ class Pipeline:
                 trace=trace,
                 expected_tools=item_data.get("expected_tools"),
                 context=item_data.get("context"),
+                acceptable_outputs=item_data.get("acceptable_outputs"),
+                tool_strategy=item_data.get("tool_strategy", "optional"),
+                max_steps=item_data.get("max_steps", 10),
+                penalize_overuse=item_data.get("penalize_overuse", False),
+                expected_contains=item_data.get("expected_contains"),
             )
             report.results.append(eval_result)
 

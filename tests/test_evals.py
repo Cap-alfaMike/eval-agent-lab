@@ -4,7 +4,9 @@ import pytest
 
 from eval_agent_lab.evals import EvaluationEngine
 from eval_agent_lab.evals.metrics import (
+    AcceptableOutputMetric,
     ContainsAnswerMetric,
+    ContainsExpectedMetric,
     ExactMatchMetric,
     HallucinationDetector,
     LevenshteinMetric,
@@ -12,6 +14,7 @@ from eval_agent_lab.evals.metrics import (
     SemanticSimilarityMetric,
     StepEfficiencyMetric,
     ToolSelectionAccuracy,
+    ToolStrategyComplianceMetric,
     get_default_metrics,
 )
 
@@ -159,6 +162,131 @@ class TestStepEfficiency:
         result = await m.compute("", "", total_steps=10, max_steps=10)
         assert result.score < 0.2
 
+    @pytest.mark.asyncio
+    async def test_penalize_overuse(self):
+        m = StepEfficiencyMetric()
+        result = await m.compute(
+            "", "", total_steps=15, max_steps=10, penalize_overuse=True
+        )
+        assert result.score == 0.0
+        assert result.details["overuse_penalty_applied"] is True
+
+    @pytest.mark.asyncio
+    async def test_no_penalty_without_flag(self):
+        m = StepEfficiencyMetric()
+        result = await m.compute(
+            "", "", total_steps=5, max_steps=10, penalize_overuse=False
+        )
+        assert result.details["overuse_penalty_applied"] is False
+
+
+@pytest.mark.unit
+class TestAcceptableOutputMetric:
+    @pytest.mark.asyncio
+    async def test_match_acceptable(self):
+        m = AcceptableOutputMetric()
+        result = await m.compute(
+            "352", "352",
+            acceptable_outputs=["352", "The result is 352"],
+        )
+        assert result.score == 1.0
+
+    @pytest.mark.asyncio
+    async def test_match_contained_acceptable(self):
+        m = AcceptableOutputMetric()
+        result = await m.compute(
+            "The answer is 352.", "352",
+            acceptable_outputs=["352", "The result is 352"],
+        )
+        assert result.score == 1.0
+
+    @pytest.mark.asyncio
+    async def test_no_match(self):
+        m = AcceptableOutputMetric()
+        result = await m.compute(
+            "999", "352",
+            acceptable_outputs=["352", "The result is 352"],
+        )
+        assert result.score == 0.0
+
+    @pytest.mark.asyncio
+    async def test_fallback_to_reference(self):
+        m = AcceptableOutputMetric()
+        result = await m.compute("Python", "Python")
+        assert result.score == 1.0
+
+
+@pytest.mark.unit
+class TestContainsExpectedMetric:
+    @pytest.mark.asyncio
+    async def test_all_keywords_present(self):
+        m = ContainsExpectedMetric()
+        result = await m.compute(
+            "Python is a programming language", "",
+            expected_contains=["Python", "programming"],
+        )
+        assert result.score == 1.0
+
+    @pytest.mark.asyncio
+    async def test_partial_keywords(self):
+        m = ContainsExpectedMetric()
+        result = await m.compute(
+            "Python is great", "",
+            expected_contains=["Python", "programming"],
+        )
+        assert result.score == 0.5
+
+    @pytest.mark.asyncio
+    async def test_no_keywords_specified(self):
+        m = ContainsExpectedMetric()
+        result = await m.compute("anything", "")
+        assert result.score == 1.0
+
+
+@pytest.mark.unit
+class TestToolStrategyCompliance:
+    @pytest.mark.asyncio
+    async def test_forbidden_no_tools_used(self):
+        m = ToolStrategyComplianceMetric()
+        result = await m.compute("", "", tool_strategy="forbidden", actual_tools=[])
+        assert result.score == 1.0
+
+    @pytest.mark.asyncio
+    async def test_forbidden_tools_used(self):
+        m = ToolStrategyComplianceMetric()
+        result = await m.compute(
+            "", "", tool_strategy="forbidden", actual_tools=["search"]
+        )
+        assert result.score == 0.0
+
+    @pytest.mark.asyncio
+    async def test_must_use_all_present(self):
+        m = ToolStrategyComplianceMetric()
+        result = await m.compute(
+            "", "",
+            tool_strategy="must_use",
+            expected_tools=["search", "calculator"],
+            actual_tools=["search", "calculator"],
+        )
+        assert result.score == 1.0
+
+    @pytest.mark.asyncio
+    async def test_must_use_partial(self):
+        m = ToolStrategyComplianceMetric()
+        result = await m.compute(
+            "", "",
+            tool_strategy="must_use",
+            expected_tools=["search", "calculator"],
+            actual_tools=["search"],
+        )
+        assert result.score == 0.5
+
+    @pytest.mark.asyncio
+    async def test_optional_always_compliant(self):
+        m = ToolStrategyComplianceMetric()
+        result = await m.compute("", "", tool_strategy="optional")
+        assert result.score == 1.0
+
 
 @pytest.mark.unit
 class TestEvaluationEngine:
@@ -191,8 +319,11 @@ class TestEvaluationEngine:
 class TestDefaultMetrics:
     def test_get_default_metrics(self):
         metrics = get_default_metrics()
-        assert len(metrics) == 8
+        assert len(metrics) == 11
         names = {m.name for m in metrics}
         assert "exact_match" in names
+        assert "acceptable_output_match" in names
+        assert "contains_expected" in names
         assert "semantic_similarity" in names
         assert "hallucination_score" in names
+        assert "tool_strategy_compliance" in names

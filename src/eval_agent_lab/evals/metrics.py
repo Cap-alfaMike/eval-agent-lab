@@ -54,6 +54,41 @@ class ExactMatchMetric(BaseMetric):
         )
 
 
+class AcceptableOutputMetric(BaseMetric):
+    """Match prediction against a list of acceptable outputs.
+
+    Returns 1.0 if the prediction matches *any* acceptable output
+    (case-insensitive, whitespace-normalized).  Falls back to the
+    primary ``expected_output`` when no acceptable_outputs are provided.
+    """
+
+    @property
+    def name(self) -> str:
+        return "acceptable_output_match"
+
+    async def compute(self, prediction: str, reference: str, **kwargs: Any) -> MetricResult:
+        acceptable: list[str] = kwargs.get("acceptable_outputs", [])
+        candidates = list(acceptable) if acceptable else [reference]
+        pred_norm = " ".join(prediction.strip().lower().split())
+
+        for candidate in candidates:
+            cand_norm = " ".join(candidate.strip().lower().split())
+            if pred_norm == cand_norm or cand_norm in pred_norm:
+                return MetricResult(
+                    metric_name=self.name,
+                    score=1.0,
+                    raw_score=True,
+                    details={"matched": candidate},
+                )
+
+        return MetricResult(
+            metric_name=self.name,
+            score=0.0,
+            raw_score=False,
+            details={"candidates": candidates},
+        )
+
+
 class ContainsAnswerMetric(BaseMetric):
     """Check if the reference answer is contained in the prediction."""
 
@@ -67,6 +102,40 @@ class ContainsAnswerMetric(BaseMetric):
         contains = ref_lower in pred_lower
         return MetricResult(
             metric_name=self.name, score=1.0 if contains else 0.0, raw_score=contains
+        )
+
+
+class ContainsExpectedMetric(BaseMetric):
+    """Check if the prediction contains all expected keywords/phrases.
+
+    Uses the ``expected_contains`` field from the dataset item for
+    lightweight soft matching — critical for LLM outputs that may
+    rephrase but should still include key terms.
+    """
+
+    @property
+    def name(self) -> str:
+        return "contains_expected"
+
+    async def compute(self, prediction: str, reference: str, **kwargs: Any) -> MetricResult:
+        expected: list[str] = kwargs.get("expected_contains", [])
+        if not expected:
+            return MetricResult(
+                metric_name=self.name,
+                score=1.0,
+                details={"note": "No expected_contains specified"},
+            )
+
+        pred_lower = prediction.lower()
+        found = [kw for kw in expected if kw.lower() in pred_lower]
+        missing = [kw for kw in expected if kw.lower() not in pred_lower]
+        score = len(found) / len(expected)
+
+        return MetricResult(
+            metric_name=self.name,
+            score=round(score, 4),
+            raw_score=len(found),
+            details={"found": found, "missing": missing},
         )
 
 
@@ -248,6 +317,69 @@ class ToolSelectionAccuracy(BaseMetric):
         )
 
 
+class ToolStrategyComplianceMetric(BaseMetric):
+    """Evaluate whether the agent followed the prescribed tool strategy.
+
+    - ``must_use``: all expected tools MUST be used → penalize missing
+    - ``optional``: tool usage is acceptable but not required → no penalty
+    - ``forbidden``: NO tools should be used → penalize any tool call
+    """
+
+    @property
+    def name(self) -> str:
+        return "tool_strategy_compliance"
+
+    async def compute(self, prediction: str, reference: str, **kwargs: Any) -> MetricResult:
+        strategy: str = kwargs.get("tool_strategy", "optional")
+        expected_tools: list[str] = kwargs.get("expected_tools", [])
+        actual_tools: list[str] = kwargs.get("actual_tools", [])
+
+        if strategy == "forbidden":
+            # Any tool use is wrong
+            if actual_tools:
+                return MetricResult(
+                    metric_name=self.name,
+                    score=0.0,
+                    details={
+                        "strategy": strategy,
+                        "violation": f"Used tools when forbidden: {actual_tools}",
+                    },
+                )
+            return MetricResult(
+                metric_name=self.name,
+                score=1.0,
+                details={"strategy": strategy, "compliance": "No tools used (correct)"},
+            )
+
+        if strategy == "must_use":
+            if not expected_tools:
+                return MetricResult(
+                    metric_name=self.name,
+                    score=1.0,
+                    details={"strategy": strategy, "note": "No expected tools defined"},
+                )
+            expected_set = set(expected_tools)
+            actual_set = set(actual_tools)
+            recall = len(expected_set & actual_set) / len(expected_set)
+            return MetricResult(
+                metric_name=self.name,
+                score=round(recall, 4),
+                details={
+                    "strategy": strategy,
+                    "expected": expected_tools,
+                    "actual": actual_tools,
+                    "missing": sorted(expected_set - actual_set),
+                },
+            )
+
+        # strategy == "optional" → always compliant
+        return MetricResult(
+            metric_name=self.name,
+            score=1.0,
+            details={"strategy": strategy, "compliance": "Tools are optional"},
+        )
+
+
 class ReasoningConsistencyMetric(BaseMetric):
     """Evaluate reasoning consistency from agent steps."""
 
@@ -289,7 +421,12 @@ class ReasoningConsistencyMetric(BaseMetric):
 
 
 class StepEfficiencyMetric(BaseMetric):
-    """Evaluate the efficiency of agent execution (fewer steps = better)."""
+    """Evaluate the efficiency of agent execution.
+
+    Scores degrade linearly as ``total_steps`` approaches ``max_steps``.
+    When ``penalize_overuse`` is True, an additional penalty is applied
+    for exceeding the expected step budget.
+    """
 
     @property
     def name(self) -> str:
@@ -298,16 +435,29 @@ class StepEfficiencyMetric(BaseMetric):
     async def compute(self, prediction: str, reference: str, **kwargs: Any) -> MetricResult:
         total_steps: int = kwargs.get("total_steps", 0)
         max_steps: int = kwargs.get("max_steps", 10)
+        penalize_overuse: bool = kwargs.get("penalize_overuse", False)
 
         if total_steps == 0:
             return MetricResult(metric_name=self.name, score=0.0)
 
-        # Optimal is 1-3 steps, efficiency degrades linearly
+        # Base efficiency: optimal is 1-3 steps, degrades linearly
         efficiency = max(0.0, 1.0 - (total_steps - 1) / max_steps)
+
+        # Overuse penalty: halve the score if steps exceed max_steps
+        overuse_penalty = False
+        if penalize_overuse and total_steps > max_steps:
+            efficiency *= 0.5
+            overuse_penalty = True
+
         return MetricResult(
             metric_name=self.name,
             score=round(efficiency, 4),
-            details={"total_steps": total_steps, "max_steps": max_steps},
+            details={
+                "total_steps": total_steps,
+                "max_steps": max_steps,
+                "penalize_overuse": penalize_overuse,
+                "overuse_penalty_applied": overuse_penalty,
+            },
         )
 
 
@@ -317,14 +467,28 @@ class StepEfficiencyMetric(BaseMetric):
 
 
 def get_default_metrics() -> list[BaseMetric]:
-    """Return all default metrics."""
+    """Return all default metrics.
+
+    Includes the three evaluation axes:
+      - **Correctness**: exact_match, acceptable_output_match,
+        contains_answer, contains_expected, levenshtein, semantic
+      - **Skill Adherence**: tool_selection_accuracy,
+        tool_strategy_compliance, reasoning_consistency
+      - **Execution Efficiency**: step_efficiency
+    """
     return [
+        # Correctness
         ExactMatchMetric(),
+        AcceptableOutputMetric(),
         ContainsAnswerMetric(),
+        ContainsExpectedMetric(),
         LevenshteinMetric(),
         SemanticSimilarityMetric(),
         HallucinationDetector(),
+        # Skill Adherence
         ToolSelectionAccuracy(),
+        ToolStrategyComplianceMetric(),
         ReasoningConsistencyMetric(),
+        # Execution Efficiency
         StepEfficiencyMetric(),
     ]

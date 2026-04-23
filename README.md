@@ -8,11 +8,13 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-100%20passed-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-117%20passed-brightgreen.svg)](#testing)
 
 **A production-grade evaluation platform for LLM outputs, agent execution traces, and tool-augmented workflows.**
 
-[Quick Start](#-quick-start) · [Architecture](#-architecture) · [Core Capabilities](#-core-capabilities) · [Rubric System](#-rubric-system) · [A/B Comparison](#-ab-run-comparison)
+> EvalAgentLab is designed to evaluate not only what models answer, but **how they arrive at the answer**.
+
+[Quick Start](#-quick-start) · [Evaluation Axes](#-evaluation-axes) · [Architecture](#-architecture) · [Core Capabilities](#-core-capabilities) · [Rubric System](#-rubric-system) · [A/B Comparison](#-ab-run-comparison)
 
 </div>
 
@@ -32,11 +34,13 @@ EvalAgentLab addresses these gaps with:
 
 | Problem | EvalAgentLab Solution |
 |---------|----------------------|
-| Flat accuracy-only evals | **8 metrics** spanning accuracy, semantics, hallucination, tool use, and reasoning |
+| Flat accuracy-only evals | **11 metrics** spanning accuracy, semantics, hallucination, tool use, strategy compliance, and reasoning |
 | No weighting or rubric control | **Formal rubric system** with JSON-configurable weights and strict validation |
 | No trace-level evaluation | **Agent trace recording** with per-step reasoning and tool call audit |
 | No experiment comparison | **A/B run comparison** with per-metric deltas and regression detection |
 | Fragmented tooling | **Unified CLI** for evaluation, comparison, dataset export, and deployment |
+| No skill adherence testing | **Tool strategy compliance** (must_use / optional / forbidden) evaluation |
+| No efficiency scoring | **Step efficiency** with overuse penalization and max-step constraints |
 
 **Who this is for:** ML engineers, AI platform teams, and researchers who need reproducible, production-aligned evaluation workflows — not just leaderboard scores.
 
@@ -48,11 +52,11 @@ EvalAgentLab addresses these gaps with:
 |----------|-------------|
 | **Agent System** | ReAct-style reasoning loop (think/decide/act/observe), short-term memory, multi-step execution |
 | **MCP Tools** | JSON schema-based tool definitions, dynamic registry, 3 built-in tools (search, calculator, vector retrieval) |
-| **Evaluation** | 8 metrics (exact match, semantic similarity, hallucination, tool accuracy, reasoning consistency, etc.) |
+| **Evaluation** | 11 metrics across 3 axes: correctness, skill adherence, execution efficiency |
 | **Rubric System** | Formal weighted rubrics for metric scoring, JSON-configurable, strict validation mode, 3 presets |
 | **Composite Scoring** | Weighted composite scores with per-metric breakdown, rubric-aware pass/fail classification |
 | **LLM-as-Judge** | Configurable LLM-based evaluation with structured scoring |
-| **Datasets** | JSON-based datasets with validation, filtering, and Hugging Face Hub export |
+| **Datasets** | JSON-based datasets with behavioural expectations, validation, filtering, and Hugging Face Hub export |
 | **Streaming** | Incremental token streaming for OpenAI provider with transparent aggregation |
 | **A/B Comparison** | Compare two evaluation runs with per-metric deltas, direction classification, and rich tables |
 | **Pipeline** | End-to-end: dataset -> inference -> evaluation -> rich terminal reports |
@@ -126,14 +130,65 @@ eval-agent-lab compare outputs/report_gpt4o_mini.json outputs/report_gpt4o.json
 
 ---
 
+## Evaluation Axes
+
+EvalAgentLab evaluates LLM and agent behavior across **three core dimensions**:
+
+### 1. Correctness
+Did the system produce the right answer?
+
+- Exact match and acceptable output matching
+- Semantic similarity (embedding-based)
+- Keyword/phrase containment (`expected_contains`)
+- Hallucination detection
+
+### 2. Skill Adherence
+Did the agent follow the correct capability pathway?
+
+- Tool selection accuracy (F1 score)
+- **Tool strategy compliance** (`must_use` / `optional` / `forbidden`)
+- Reasoning consistency (step-type analysis)
+- Expected reasoning step validation
+
+### 3. Execution Efficiency
+Did the agent solve the task efficiently?
+
+- Step count vs expected (`max_steps`)
+- Avoidance of redundant tool calls
+- Penalization of unnecessary actions (`penalize_overuse`)
+
+This moves evaluation beyond output correctness into **behavioral reliability and decision quality**.
+
+---
+
+## Dataset Design
+
+Each dataset item encodes not only the expected output, but also the **expected behavior** of the agent.
+
+Key fields include:
+
+| Field | Purpose |
+|------|--------|
+| `expected_tools` | Defines which tools should be used |
+| `tool_strategy` | Enforces required, optional, or forbidden tool usage |
+| `acceptable_outputs` | Handles natural variation in LLM responses |
+| `max_steps` | Constrains execution efficiency |
+| `penalize_overuse` | Penalizes redundant or excessive actions |
+| `expected_contains` | Soft matching via keywords/phrases |
+| `expected_reasoning` | Captures expected reasoning steps |
+
+This enables evaluation of **skill adherence and execution efficiency**, not just correctness.
+
+---
+
 ## Benchmark Datasets
 
 EvalAgentLab ships with curated evaluation datasets and supports publishing to **Hugging Face Hub**.
 
 | Dataset | Items | Categories | Purpose |
 |---------|-------|------------|---------|
-| `core_evaluation_suite.json` | 10 | knowledge, reasoning, tool_use | General LLM + agent evaluation |
-| `tool_selection_benchmark.json` | 5 | tool_use | Tool selection accuracy testing |
+| `core_evaluation_suite.json` | 15 | knowledge, reasoning, computation, tool_use, multi_step, hallucination | General LLM + agent evaluation |
+| `tool_selection_benchmark.json` | 5 | computation, search, retrieval, multi_tool | Tool selection accuracy testing |
 
 **Push to Hugging Face Hub:**
 
@@ -317,7 +372,7 @@ eval-agent-lab/
 ├── rubrics/
 │   ├── accuracy_focused.json
 │   └── agent_focused.json
-├── tests/                       # 100 unit tests
+├── tests/                       # 117 unit tests
 │   ├── test_mcp.py
 │   ├── test_evals.py
 │   ├── test_datasets.py
@@ -355,7 +410,7 @@ eval-agent-lab/
 ## Testing
 
 ```bash
-# Run all unit tests (100 tests)
+# Run all unit tests (117 tests)
 pytest tests/ -m unit -v
 
 # Run with coverage
@@ -397,6 +452,6 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**Built with engineering rigor for the AI evaluation community.**
+**An evaluation platform for correctness, skill adherence, and execution efficiency in LLM-based agents.**
 
 </div>

@@ -25,6 +25,44 @@ class TestDatasetItem:
         with pytest.raises((ValueError, Exception)):
             DatasetItem(input="", expected_output="something")
 
+    def test_new_schema_defaults(self):
+        """New fields should have sensible defaults for backward compatibility."""
+        item = DatasetItem(input="test", expected_output="answer")
+        assert item.acceptable_outputs == []
+        assert item.tool_strategy == "optional"
+        assert item.max_steps == 10
+        assert item.penalize_overuse is False
+        assert item.expected_contains == []
+        assert item.expected_reasoning == []
+
+    def test_new_schema_fields(self):
+        """All new fields should be settable."""
+        item = DatasetItem(
+            input="What is 2+2?",
+            expected_output="4",
+            acceptable_outputs=["4", "four"],
+            tool_strategy="must_use",
+            expected_tools=["calculator"],
+            max_steps=1,
+            penalize_overuse=True,
+            expected_contains=["4"],
+            expected_reasoning=["compute addition"],
+        )
+        assert item.acceptable_outputs == ["4", "four"]
+        assert item.tool_strategy == "must_use"
+        assert item.max_steps == 1
+        assert item.penalize_overuse is True
+        assert item.expected_contains == ["4"]
+        assert item.expected_reasoning == ["compute addition"]
+
+    def test_tool_strategy_forbidden(self):
+        item = DatasetItem(
+            input="What is Atlantis?",
+            expected_output="fictional",
+            tool_strategy="forbidden",
+        )
+        assert item.tool_strategy == "forbidden"
+
 
 @pytest.mark.unit
 class TestDatasetLoader:

@@ -4,20 +4,63 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 from eval_agent_lab.exceptions import DatasetValidationError
 
+# Valid tool_strategy values for dataset items
+ToolStrategy = Literal["must_use", "optional", "forbidden"]
+
 
 class DatasetItem(BaseModel):
-    """A single item in an evaluation dataset."""
+    """A single item in an evaluation dataset.
+
+    Encodes not only the expected output, but also the expected
+    *behaviour* of the agent — which tools to use, how many steps
+    are acceptable, and what the reasoning chain should look like.
+    """
 
     id: str = ""
     input: str
+
+    # --- Output expectations ---
     expected_output: str
+    acceptable_outputs: list[str] = Field(
+        default_factory=list,
+        description="Alternative correct outputs for flexible matching",
+    )
+
+    # --- Tool / skill adherence ---
     expected_tools: list[str] = Field(default_factory=list)
+    tool_strategy: ToolStrategy = Field(
+        default="optional",
+        description="must_use: tools required | optional: allowed | forbidden: wrong",
+    )
+
+    # --- Efficiency constraints ---
+    max_steps: int = Field(
+        default=10,
+        ge=1,
+        description="Maximum expected steps for efficient resolution",
+    )
+    penalize_overuse: bool = Field(
+        default=False,
+        description="Penalize redundant or excessive tool calls",
+    )
+
+    # --- Soft matching & reasoning ---
+    expected_contains: list[str] = Field(
+        default_factory=list,
+        description="Keywords/phrases the output should contain",
+    )
+    expected_reasoning: list[str] = Field(
+        default_factory=list,
+        description="Expected reasoning steps (lightweight validation)",
+    )
+
+    # --- Classification ---
     context: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     difficulty: str = "medium"  # easy, medium, hard
