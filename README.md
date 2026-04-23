@@ -9,6 +9,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Tests](https://img.shields.io/badge/tests-117%20passed-brightgreen.svg)](#testing)
+[![Dataset on HF](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Benchmark-yellow.svg)](https://huggingface.co/datasets/Cap-alfaMike/eval-agent-lab-benchmark)
 
 **A production-grade evaluation platform for LLM outputs, agent execution traces, and tool-augmented workflows.**
 
@@ -183,18 +184,26 @@ This enables evaluation of **skill adherence and execution efficiency**, not jus
 
 ## Benchmark Datasets
 
-EvalAgentLab ships with curated evaluation datasets and supports publishing to **Hugging Face Hub**.
+EvalAgentLab ships with curated evaluation datasets published on **[Hugging Face Hub](https://huggingface.co/datasets/Cap-alfaMike/eval-agent-lab-benchmark)** for community access and reproducibility.
 
 | Dataset | Items | Categories | Purpose |
 |---------|-------|------------|---------|
 | `core_evaluation_suite.json` | 15 | knowledge, reasoning, computation, tool_use, multi_step, hallucination | General LLM + agent evaluation |
 | `tool_selection_benchmark.json` | 5 | computation, search, retrieval, multi_tool | Tool selection accuracy testing |
 
-**Push to Hugging Face Hub:**
+**Use directly from Hugging Face:**
+
+```python
+from datasets import load_dataset
+
+ds = load_dataset("Cap-alfaMike/eval-agent-lab-benchmark")
+```
+
+**Or push your own datasets to HF Hub:**
 
 ```bash
 eval-agent-lab push-dataset datasets/core_evaluation_suite.json \
-  --repo Cap-alfaMike/eval-agent-lab-benchmark
+  --repo your-username/your-benchmark
 ```
 
 This generates a dataset card, exports as JSONL, and uploads to your HF namespace.
