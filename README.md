@@ -461,6 +461,14 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
+### 🔄 Built for the Fine-Tuning Lifecycle (SFT, DPO, LoRA)
+
+EvalAgentLab is not just for inference evaluation; it is designed to support the modern LLM training stack:
+* **SFT Fuel:** Use the Hugging Face export module (`eval-agent-lab push-dataset`) to generate validated, high-quality execution traces (ReAct, tool calls) to build your Supervised Fine-Tuning datasets.
+* **RLHF / DPO Ready:** The `LLM-as-Judge` and formal JSON `Rubric System` act as an automated reward signal (RLAIF), scoring agent trajectories to generate preference pairs (chosen/rejected) for DPO alignment.
+* **LoRA Iteration Testing:** Use the `A/B Comparison` tool to evaluate QLoRA adapter checkpoints against base models, ensuring specific tool-use improvements don't cause regressions in general reasoning capabilities.
+
+
 **An evaluation platform for correctness, skill adherence, and execution efficiency in LLM-based agents.**
 
 </div>
